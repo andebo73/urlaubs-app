@@ -34,6 +34,10 @@ class Game {
     this.imageData = null;
     this.lastFrame = null;
     this.ready = false;
+
+    // Minikarte: Zoom-Zustand und aktuelles Rechteck (in CSS-Pixeln, für Klick-Test).
+    this.minimapZoom = false;
+    this.minimapRect = null;
   }
 
   _randomSeed() {
@@ -51,6 +55,18 @@ class Game {
     await this.textures.load();
 
     this.input.attach(window);
+
+    // Klick auf die Minikarte schaltet den Zoom um. Vor TouchControls
+    // registriert, damit ein Karten-Klick nicht zugleich die Kamera dreht.
+    this.view.addEventListener('pointerdown', (e) => {
+      if (this.hitMinimap(e.clientX, e.clientY)) {
+        this.toggleMinimapZoom();
+        this.render();
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      }
+    });
+
     this.touch = new TouchControls(
       document.getElementById('touch-controls'),
       this.input,
@@ -153,10 +169,22 @@ class Game {
       0, 0, this.view.width, this.view.height
     );
 
-    // Minikarte oben rechts.
+    // Minikarte – klickbar: normal (oben rechts) oder vergrößert (zentriert).
     const dpr = Math.min(DPR_CAP, window.devicePixelRatio || 1);
-    const mapSize = Math.min(140, this.view.width / dpr * 0.32) * dpr;
-    drawMinimap(dctx, this.state, this.view.width - mapSize - 10 * dpr, 70 * dpr, mapSize);
+    const cssW = this.view.width / dpr;
+    const cssH = this.view.height / dpr;
+    let size, x, y;
+    if (this.minimapZoom) {
+      size = Math.min(cssW, cssH) * 0.82;
+      x = (cssW - size) / 2;
+      y = (cssH - size) / 2;
+    } else {
+      size = Math.min(150, cssW * 0.34);
+      x = cssW - size - 10;
+      y = 70;
+    }
+    this.minimapRect = { x, y, size };
+    drawMinimap(dctx, this.state, x * dpr, y * dpr, size * dpr);
 
     // Kampf-Gegnerbild aktualisieren.
     const art = document.getElementById('combat-enemy-art');
@@ -175,6 +203,22 @@ class Game {
     this.step();
     this.render();
     requestAnimationFrame(() => this.loop());
+  }
+
+  // Liegt der (CSS-)Punkt innerhalb der aktuellen Minikarte?
+  hitMinimap(clientX, clientY) {
+    const r = this.minimapRect;
+    if (!r) return false;
+    return (
+      clientX >= r.x &&
+      clientX <= r.x + r.size &&
+      clientY >= r.y &&
+      clientY <= r.y + r.size
+    );
+  }
+
+  toggleMinimapZoom() {
+    this.minimapZoom = !this.minimapZoom;
   }
 
   // Prüft, ob der letzte Frame quasi einfarbig (leer) ist.

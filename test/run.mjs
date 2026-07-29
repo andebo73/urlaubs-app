@@ -134,6 +134,20 @@ async function runDesktop(browser, baseUrl) {
   check('Inventar wächst um 1', card.grew);
   check('aufgesammelte Karte im Inventar', card.contains);
 
+  // Minikarte: Klick vergrößert, erneuter Klick verkleinert.
+  const rect1 = await page.evaluate(() => {
+    window.TammoTest.frame();
+    return window.TammoTest.game.minimapRect;
+  });
+  await page.mouse.click(rect1.x + rect1.size / 2, rect1.y + rect1.size / 2);
+  const zoomed = await page.evaluate(() => window.TammoTest.game.minimapZoom);
+  check('Minikarte vergrößert nach Klick', zoomed === true);
+
+  const rect2 = await page.evaluate(() => window.TammoTest.game.minimapRect);
+  await page.mouse.click(rect2.x + rect2.size / 2, rect2.y + rect2.size / 2);
+  const backToNormal = await page.evaluate(() => window.TammoTest.game.minimapZoom);
+  check('Minikarte wieder normal nach erneutem Klick', backToNormal === false);
+
   await page.close();
 }
 
