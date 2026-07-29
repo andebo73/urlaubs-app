@@ -18,6 +18,9 @@ export class Hud {
       classIcon: g('hud-class-icon'),
       className: g('hud-class'),
       viertel: g('hud-viertel'),
+      keys: g('hud-keys'),
+      questChip: g('hud-quest-chip'),
+      quest: g('hud-quest'),
       res: g('hud-res'),
       message: g('hud-message'),
       combat: g('combat-overlay'),
@@ -57,6 +60,18 @@ export class Hud {
 
     if (this.el.level) this.el.level.textContent = `${p.level}/${s.maxLevel}`;
     if (this.el.viertel) this.el.viertel.textContent = s.viertelName;
+    if (this.el.keys) this.el.keys.textContent = String(s.keys);
+
+    // Auftrags-Chip (nur wenn ein Auftrag aktiv ist).
+    if (this.el.questChip) {
+      if (s.quest) {
+        this.el.questChip.hidden = false;
+        const done = s.quest.done ? ' ✓' : ` ${s.quest.progress}/${s.quest.target}`;
+        if (this.el.quest) this.el.quest.textContent = `${s.quest.text}${done}`;
+      } else {
+        this.el.questChip.hidden = true;
+      }
+    }
 
     // Rohstoff-Vorrat (nur bei Änderung neu bauen).
     const sig = s.resources.map((r) => r.count).join(',');

@@ -88,6 +88,73 @@ function haendler() {
 }
 
 // ---------------------------------------------------------------------------
+// Tür-Wandtextur (vollflächig): Holzbohlen mit Metallbändern und Griff.
+// ---------------------------------------------------------------------------
+function doorWall() {
+  let planks = '';
+  for (let i = 0; i < 4; i++) {
+    const x = 6 + i * 13;
+    planks += `<rect x="${x}" y="6" width="11" height="52" rx="2" fill="#7a5230"/>
+      <rect x="${x}" y="6" width="3" height="52" fill="#5e3f24" opacity="0.6"/>`;
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+    <rect width="64" height="64" fill="#3a2818"/>
+    ${planks}
+    <rect x="4" y="14" width="56" height="6" fill="#4e3420"/>
+    <rect x="4" y="44" width="56" height="6" fill="#4e3420"/>
+    <circle cx="50" cy="34" r="4" fill="${P.gold}" stroke="${P.goldDark}" stroke-width="1.5"/>
+  </svg>`;
+}
+
+// ---------------------------------------------------------------------------
+// Schlüssel-Sprite (transparenter Grund).
+// ---------------------------------------------------------------------------
+function keySvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+    <g transform="translate(32,32) rotate(45)">
+      <circle cx="-14" cy="0" r="8" fill="none" stroke="${P.gold}" stroke-width="5"/>
+      <rect x="-6" y="-2.5" width="24" height="5" fill="${P.gold}"/>
+      <rect x="12" y="-2.5" width="4" height="10" fill="${P.gold}"/>
+      <rect x="17" y="-2.5" width="3" height="7" fill="${P.gold}"/>
+    </g>
+  </svg>`;
+}
+
+// ---------------------------------------------------------------------------
+// Truhen-Sprites (transparenter Grund): geschlossen und geöffnet.
+// ---------------------------------------------------------------------------
+function chest(open) {
+  const lid = open
+    ? `<path d="M -18 -2 L -14 -16 L 14 -16 L 18 -2 Z" fill="#8a5a2b" stroke="#5e3f24" stroke-width="2" transform="translate(0,-8) rotate(-18)"/>
+       <rect x="-16" y="-4" width="32" height="6" fill="${P.gold}" opacity="0.85"/>`
+    : `<path d="M -18 -2 Q 0 -18 18 -2 Z" fill="#8a5a2b" stroke="#5e3f24" stroke-width="2"/>
+       <rect x="-4" y="-6" width="8" height="10" rx="2" fill="${P.gold}" stroke="${P.goldDark}"/>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+    <g transform="translate(32,40)">
+      <rect x="-18" y="-2" width="36" height="18" rx="3" fill="#7a5230" stroke="#5e3f24" stroke-width="2"/>
+      <rect x="-18" y="4" width="36" height="4" fill="${P.goldDark}"/>
+      ${lid}
+    </g>
+  </svg>`;
+}
+
+// ---------------------------------------------------------------------------
+// Bewohner-NPC (transparenter Grund): freundliche Figur mit Mütze.
+// ---------------------------------------------------------------------------
+function bewohner() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+    <g transform="translate(32,32)">
+      <path d="M -13 24 Q -14 2 0 -4 Q 14 2 13 24 Z" fill="#3f7d8c" stroke="#2b5966" stroke-width="2"/>
+      <circle cx="0" cy="-8" r="9" fill="#e9b98c"/>
+      <path d="M -10 -10 Q 0 -22 10 -10 Q 6 -14 0 -14 Q -6 -14 -10 -10 Z" fill="#c0392b"/>
+      <circle cx="-3" cy="-9" r="1.4" fill="#3a2a1a"/>
+      <circle cx="3" cy="-9" r="1.4" fill="#3a2a1a"/>
+      <path d="M -3 -5 Q 0 -3 3 -5" fill="none" stroke="#3a2a1a" stroke-width="1.3"/>
+    </g>
+  </svg>`;
+}
+
+// ---------------------------------------------------------------------------
 // Rohstoff-Kristalle (transparenter Grund), Farbe je Typ.
 // ---------------------------------------------------------------------------
 function crystal(color) {
@@ -156,9 +223,15 @@ export const SVGS = {
   wall_mechanik: metalWall(P.metalLight, P.metalMid, P.metalDark),
 
   // Sprites
+  wall_door: doorWall(),
+
   goblin: goblin(1),
   goblin_gross: goblin(1.25),
   haendler: haendler(),
+  bewohner: bewohner(),
+  key: keySvg(),
+  chest_closed: chest(false),
+  chest_open: chest(true),
   res_erz: crystal(RESOURCES.erz.color),
   res_rune: crystal(RESOURCES.rune.color),
   res_splitter: crystal(RESOURCES.splitter.color),
@@ -180,6 +253,7 @@ export const WALL_TEXTURES = {
   2: 'wall_pilz',
   3: 'wall_katakomben',
   4: 'wall_mechanik',
+  5: 'wall_door',
 };
 
 export function svgToDataUrl(svg) {

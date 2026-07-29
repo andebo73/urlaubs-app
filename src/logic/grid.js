@@ -42,4 +42,20 @@ export class Grid {
     }
     return out;
   }
+
+  // Anzahl freier orthogonaler Nachbarn einer Zelle.
+  freeNeighbourCount(x, y) {
+    let n = 0;
+    if (this.get(x + 1, y) === 0) n++;
+    if (this.get(x - 1, y) === 0) n++;
+    if (this.get(x, y + 1) === 0) n++;
+    if (this.get(x, y - 1) === 0) n++;
+    return n;
+  }
+
+  clone() {
+    const g = new Grid(this.width, this.height, 0);
+    g.cells = new Uint8Array(this.cells);
+    return g;
+  }
 }

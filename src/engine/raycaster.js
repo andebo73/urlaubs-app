@@ -26,7 +26,8 @@ export function camera(player, fov = 0.66) {
 }
 
 // Füllt Decke/Boden als vertikalen Farbverlauf (günstig, kein Floor-Casting).
-function fillBackground(data, W, H) {
+// `light` (0..1) dunkelt die ganze Szene ab (z. B. in den Katakomben).
+function fillBackground(data, W, H, light) {
   const half = H >> 1;
   for (let y = 0; y < H; y++) {
     let r, g, b;
@@ -44,21 +45,22 @@ function fillBackground(data, W, H) {
     const rowBase = y * W * 4;
     for (let x = 0; x < W; x++) {
       const i = rowBase + x * 4;
-      data[i] = r;
-      data[i + 1] = g;
-      data[i + 2] = b;
+      data[i] = r * light;
+      data[i + 1] = g * light;
+      data[i + 2] = b * light;
       data[i + 3] = 255;
     }
   }
 }
 
 // Rendert Wände in imageData und schreibt zBuffer[x] = perpWallDist.
-export function castWalls(imageData, W, H, state, textures, zBuffer) {
+// `light` (0..1) skaliert die Helligkeit (Standard 1).
+export function castWalls(imageData, W, H, state, textures, zBuffer, light = 1) {
   const data = imageData.data;
   const { grid, player } = state;
   const { dirX, dirY, planeX, planeY } = camera(player);
 
-  fillBackground(data, W, H);
+  fillBackground(data, W, H, light);
 
   const texSize = textures.size;
 
@@ -140,7 +142,7 @@ export function castWalls(imageData, W, H, state, textures, zBuffer) {
       const texY = Math.min(texSize - 1, Math.max(0, texPos | 0));
       texPos += step;
       const ti = (texY * texSize + texX) * 4;
-      const m = shade * fog;
+      const m = shade * fog * light;
       const di = (y * W + x) * 4;
       data[di] = tData[ti] * m;
       data[di + 1] = tData[ti + 1] * m;

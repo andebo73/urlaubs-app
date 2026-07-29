@@ -217,9 +217,10 @@ class Game {
 
   render() {
     if (!this.imageData) return;
-    // 3D-Bild in den Puffer rendern.
-    castWalls(this.imageData, this.renderW, this.renderH, this.state, this.textures, this.zBuffer);
-    drawSprites(this.imageData, this.renderW, this.renderH, this.state, this.textures, this.zBuffer);
+    // 3D-Bild in den Puffer rendern (mit Lichtfaktor, z. B. dunkle Katakomben).
+    const light = this.state.lightLevel ? this.state.lightLevel() : 1;
+    castWalls(this.imageData, this.renderW, this.renderH, this.state, this.textures, this.zBuffer, light);
+    drawSprites(this.imageData, this.renderW, this.renderH, this.state, this.textures, this.zBuffer, light);
     this.bufferCtx.putImageData(this.imageData, 0, 0);
     this.lastFrame = this.imageData;
 
@@ -385,6 +386,59 @@ window.TammoTest = {
     if (!near) return null;
     const res = game.state.pickup(near.res);
     return res.resId;
+  },
+  // --- Stufe 2: Schlüssel, Türen, Truhen, Aufträge, Licht ---
+  getKeys() {
+    return game.state.inventory.keys;
+  },
+  getQuest() {
+    return game.state.snapshot().quest;
+  },
+  lightLevel() {
+    return game.state.lightLevel();
+  },
+  pickupNearestKey() {
+    const near = game.state.nearestKey();
+    if (!near) return null;
+    game.state.pickupKey(near.key);
+    return game.state.inventory.keys;
+  },
+  openNearestChest() {
+    const near = game.state.nearestChest();
+    if (!near) return null;
+    game.state.player.x = near.chest.x - 0.3;
+    game.state.player.y = near.chest.y;
+    return game.state.openChest(near.chest);
+  },
+  openFacingDoor() {
+    // Vor die erste geschlossene Tür stellen und öffnen.
+    for (const d of game.state.doors.values()) {
+      if (d.open) continue;
+      game.state.player.x = d.x + 0.5 - 0.7;
+      game.state.player.y = d.y + 0.5;
+      game.state.player.angle = 0;
+      return game.state.openDoor(d);
+    }
+    return null;
+  },
+  talkBewohner() {
+    game.state.player.x = game.state.bewohner.x - 0.4;
+    game.state.player.y = game.state.bewohner.y;
+    return game.state.talkBewohner();
+  },
+  teleportToViertel(name) {
+    // Grobe Teleportation in ein Viertel (für Licht-Tests): unten-links = Katakomben.
+    const g = game.state.grid;
+    const targets = {
+      handel: { x: 1.5, y: 1.5 },
+      pilz: { x: g.width - 1.5, y: 1.5 },
+      katakomben: { x: 1.5, y: g.height - 1.5 },
+      mechanik: { x: g.width - 1.5, y: g.height - 1.5 },
+    };
+    const t = targets[name] || targets.handel;
+    game.state.player.x = t.x;
+    game.state.player.y = t.y;
+    return { viertel: game.state.currentViertel(), light: game.state.lightLevel() };
   },
   // Zum Händler teleportieren und abgeben/umtauschen (Aufstieg).
   handInAtHaendler() {

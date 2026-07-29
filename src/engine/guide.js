@@ -51,6 +51,7 @@ export function buildGuideHtml(state) {
       <li>Leben <b>${p.hp}/${p.maxHp}</b> · Stärke <b>${p.strength}</b></li>
       <li>Stufenkarte: <b>${s.guild.have}/${s.guild.need}</b> ${esc(s.class.resourceName)} für die nächste Stufe</li>
       <li>Aktuelles Viertel: <b>${esc(s.viertelName)}</b></li>
+      <li>Schlüssel: <b>🔑 ${s.keys}</b>${s.quest ? ` · Auftrag: <b>${esc(s.quest.text)}</b> (${s.quest.progress}/${s.quest.target})` : ''}</li>
       <li>Vorrat: ${resRow}</li>
     </ul>
 
@@ -66,6 +67,25 @@ export function buildGuideHtml(state) {
 
     <h2>Die Viertel</h2>
     <ul class="g-viertel">${viertelRows}</ul>
+
+    <h2>Türen, Truhen &amp; Schlüssel</h2>
+    <ul>
+      <li>Manche <b>Türen</b> (Abkürzungen) und <b>Truhen</b> (mit Beute) sind verschlossen.</li>
+      <li>Der <b>Schurke</b> öffnet sie ganz ohne Schlüssel.</li>
+      <li>Alle anderen brauchen einen <b>🔑 Schlüssel</b> – die liegen im Labyrinth verstreut.</li>
+    </ul>
+
+    <h2>Katakomben &amp; Zauberlicht</h2>
+    <ul>
+      <li>Die <b>Katakomben</b> sind stockdunkel.</li>
+      <li>Nur der <b>Magier</b> bringt sein <b>Zauberlicht</b> mit und sieht dort alles klar.</li>
+    </ul>
+
+    <h2>Aufträge</h2>
+    <ul>
+      <li>Der <b>Bewohner</b> (türkis auf der Karte) im Handelsviertel gibt kleine Aufträge.</li>
+      <li>Erledige sie (Kobolde besiegen oder Rohstoffe sammeln) und hol dir <b>Schlüssel</b> als Belohnung.</li>
+    </ul>
 
     <h2>Kampf</h2>
     <ul>

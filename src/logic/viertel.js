@@ -2,6 +2,9 @@
 // geteilt (Quadranten), jede mit eigener Wandtextur und Charakter.
 // Reine Logik: kein DOM.
 
+// Wand-Textur-ID für (geschlossene) Türen.
+export const DOOR_WALL = 5;
+
 export const VIERTEL = {
   handel: { id: 'handel', name: 'Handelsviertel', wall: 1, danger: false },
   pilz: { id: 'pilz', name: 'Pilzviertel', wall: 2, danger: false },

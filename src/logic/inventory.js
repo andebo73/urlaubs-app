@@ -6,6 +6,18 @@ export class Inventory {
   constructor() {
     this.counts = new Map();
     for (const id of RESOURCE_IDS) this.counts.set(id, 0);
+    this.keys = 0; // Schlüssel zum Öffnen von Türen/Truhen
+  }
+
+  addKey(n = 1) {
+    this.keys += n;
+  }
+  spendKey() {
+    if (this.keys > 0) {
+      this.keys -= 1;
+      return true;
+    }
+    return false;
   }
 
   add(id, n = 1) {

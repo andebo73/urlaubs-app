@@ -69,3 +69,11 @@ export const RESOURCES_PER_LEVEL = 5; // 5 gildeneigene Rohstoffe pro Aufstieg
 export function getClass(id) {
   return CLASSES.find((c) => c.id === id) || CLASSES[0];
 }
+
+// Der Schurke öffnet Türen/Truhen ohne Schlüssel; der Magier hat Zauberlicht.
+export function canPickLocks(classId) {
+  return classId === 'schurke';
+}
+export function hasMagicLight(classId) {
+  return classId === 'magier';
+}

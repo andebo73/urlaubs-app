@@ -5,12 +5,13 @@
 import { camera } from './raycaster.js';
 
 // Zeichnet alle sichtbaren Sprites (fern -> nah) mit Alpha-Compositing.
-export function drawSprites(imageData, W, H, state, textures, zBuffer) {
+// `light` (0..1) dunkelt Sprites passend zur Szene ab (Standard 1).
+export function drawSprites(imageData, W, H, state, textures, zBuffer, light = 1) {
   const data = imageData.data;
   const { player } = state;
   const { dirX, dirY, planeX, planeY } = camera(player);
 
-  // Sichtbare Objekte: lebende Gegner, nicht gesammelte Rohstoffe und der Händler.
+  // Sichtbare Objekte: Gegner, Rohstoffe, Händler, Bewohner, Schlüssel, Truhen.
   const objs = [];
   for (const e of state.enemies) {
     if (e.alive && e.hp > 0) objs.push({ x: e.x, y: e.y, sprite: e.sprite, kind: 'enemy' });
@@ -18,8 +19,21 @@ export function drawSprites(imageData, W, H, state, textures, zBuffer) {
   for (const r of state.resources) {
     if (!r.collected) objs.push({ x: r.x, y: r.y, sprite: r.sprite, kind: 'card', bob: true });
   }
+  if (state.keyItems) {
+    for (const k of state.keyItems) {
+      if (!k.collected) objs.push({ x: k.x, y: k.y, sprite: 'key', kind: 'card', bob: true });
+    }
+  }
+  if (state.chests) {
+    for (const c of state.chests) {
+      objs.push({ x: c.x, y: c.y, sprite: c.opened ? 'chest_open' : 'chest_closed', kind: 'enemy' });
+    }
+  }
   if (state.haendler) {
     objs.push({ x: state.haendler.x, y: state.haendler.y, sprite: state.haendler.sprite, kind: 'enemy' });
+  }
+  if (state.bewohner) {
+    objs.push({ x: state.bewohner.x, y: state.bewohner.y, sprite: state.bewohner.sprite, kind: 'enemy' });
   }
 
   // Nach Distanz sortieren (fern zuerst).
@@ -59,7 +73,7 @@ export function drawSprites(imageData, W, H, state, textures, zBuffer) {
     const tex = textures.spritePixels(o.sprite);
     if (!tex) continue;
     const tData = tex.data;
-    const fog = Math.min(1, 1 / (1 + transformY * 0.1));
+    const fog = Math.min(1, 1 / (1 + transformY * 0.1)) * light;
 
     for (let stripe = x0; stripe <= x1; stripe++) {
       // Verdeckung durch Wände.

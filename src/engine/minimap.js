@@ -15,11 +15,11 @@ export function drawMinimap(ctx, state, ox, oy, size) {
   ctx.fillStyle = 'rgba(10,12,18,0.75)';
   ctx.fillRect(ox - 4, oy - 4, size + 8, size + 8);
 
-  // Wände / freie Zellen
+  // Wände / freie Zellen (geschlossene Türen = ID 5 in Braun)
   for (let y = 0; y < grid.height; y++) {
     for (let x = 0; x < grid.width; x++) {
       const v = grid.get(x, y);
-      ctx.fillStyle = v > 0 ? P.stoneDark : '#20262f';
+      ctx.fillStyle = v === 5 ? '#8a5a2b' : v > 0 ? P.stoneDark : '#20262f';
       ctx.fillRect(ox + x * cell, oy + y * cell, cell + 0.5, cell + 0.5);
     }
   }
@@ -39,6 +39,34 @@ export function drawMinimap(ctx, state, ox, oy, size) {
     if (!e.alive || e.hp <= 0) continue;
     ctx.beginPath();
     ctx.arc(ox + e.x * cell, oy + e.y * cell, cell * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Truhen (braunes Quadrat)
+  if (state.chests) {
+    for (const c of state.chests) {
+      const r = cell * 0.4;
+      ctx.fillStyle = c.opened ? '#5e3f24' : '#a06a34';
+      ctx.fillRect(ox + c.x * cell - r, oy + c.y * cell - r, r * 2, r * 2);
+    }
+  }
+
+  // Schlüssel (kleine goldene Punkte)
+  if (state.keyItems) {
+    ctx.fillStyle = P.gold;
+    for (const k of state.keyItems) {
+      if (k.collected) continue;
+      ctx.beginPath();
+      ctx.arc(ox + k.x * cell, oy + k.y * cell, cell * 0.22, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Bewohner (türkiser Punkt)
+  if (state.bewohner) {
+    ctx.fillStyle = '#3f9db0';
+    ctx.beginPath();
+    ctx.arc(ox + state.bewohner.x * cell, oy + state.bewohner.y * cell, cell * 0.4, 0, Math.PI * 2);
     ctx.fill();
   }
 

@@ -177,6 +177,47 @@ async function runDesktop(browser, baseUrl) {
   const back = await page.evaluate(() => window.TammoTest.game.minimapZoom);
   check('Minikarte wieder normal nach erneutem Klick', back === false);
 
+  // --- Stufe 2 ---
+  // Schlüssel aufsammeln.
+  const key = await page.evaluate(() => {
+    window.TammoTest.reset(12345, 'kaempfer');
+    const before = window.TammoTest.getKeys();
+    const after = window.TammoTest.pickupNearestKey();
+    return { before, after };
+  });
+  check('Schlüssel aufgesammelt', key.after === key.before + 1);
+
+  // Schurke öffnet Tür und Truhe ohne Schlüssel.
+  const rogue = await page.evaluate(() => {
+    window.TammoTest.reset(12345, 'schurke');
+    const door = window.TammoTest.openFacingDoor();
+    const invBefore = window.TammoTest.getResources().reduce((s, r) => s + r.count, 0);
+    const chest = window.TammoTest.openNearestChest();
+    const invAfter = window.TammoTest.getResources().reduce((s, r) => s + r.count, 0);
+    return { door: !!(door && door.opened), chest: !!(chest && chest.opened), loot: invAfter > invBefore };
+  });
+  check('Schurke öffnet Tür ohne Schlüssel', rogue.door);
+  check('Schurke öffnet Truhe (Beute erhalten)', rogue.chest && rogue.loot);
+
+  // Katakomben dunkel (Kämpfer) vs. hell (Magier = Zauberlicht).
+  const light = await page.evaluate(() => {
+    window.TammoTest.reset(12345, 'kaempfer');
+    const k = window.TammoTest.teleportToViertel('katakomben').light;
+    window.TammoTest.reset(12345, 'magier');
+    const m = window.TammoTest.teleportToViertel('katakomben').light;
+    return { k, m };
+  });
+  check('Katakomben dunkel für Kämpfer', light.k < 1);
+  check('Katakomben hell für Magier (Zauberlicht)', light.m === 1);
+
+  // Bewohner vergibt einen Auftrag.
+  const quest = await page.evaluate(() => {
+    window.TammoTest.reset(7, 'kaempfer');
+    const q = window.TammoTest.talkBewohner();
+    return { state: q.state, has: !!window.TammoTest.getQuest() };
+  });
+  check('Bewohner vergibt einen Auftrag', quest.state === 'new' && quest.has);
+
   await page.close();
 }
 

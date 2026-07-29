@@ -132,3 +132,78 @@ test('Startet im Klassenwahl-Modus', () => {
   assert.equal(gs.mode, 'explore');
   assert.equal(getClass('magier').name, 'Magier');
 });
+
+// --- Stufe 2 ---------------------------------------------------------------
+
+test('Geschlossene Türen trennen das Labyrinth nicht', () => {
+  for (const seed of [1, 12345, 42]) {
+    const gs = new GameState(seed);
+    gs.chooseClass('kaempfer');
+    assert.ok(gs.doors.size > 0, 'es sollten Türen existieren');
+    assert.ok(isFullyConnected(gs.grid), `Seed ${seed}: Türen blockieren einen Weg`);
+  }
+});
+
+test('Schurke öffnet Türen ohne Schlüssel; andere brauchen einen', () => {
+  const schurke = new GameState(12345);
+  schurke.chooseClass('schurke');
+  const d1 = [...schurke.doors.values()][0];
+  assert.equal(schurke.openDoor(d1).opened, true);
+  assert.equal(schurke.grid.get(d1.x, d1.y), 0);
+
+  const kaempfer = new GameState(12345);
+  kaempfer.chooseClass('kaempfer');
+  const d2 = [...kaempfer.doors.values()][0];
+  assert.equal(kaempfer.openDoor(d2).opened, false); // ohne Schlüssel
+  kaempfer.inventory.addKey();
+  assert.equal(kaempfer.openDoor(d2).opened, true); // mit Schlüssel
+  assert.equal(kaempfer.inventory.keys, 0);
+});
+
+test('Truhe öffnen gibt Beute (Schurke gratis)', () => {
+  const gs = new GameState(777);
+  gs.chooseClass('schurke');
+  const before = gs.inventory.total();
+  const chest = gs.chests[0];
+  const r = gs.openChest(chest);
+  assert.equal(r.opened, true);
+  assert.equal(chest.opened, true);
+  assert.equal(gs.inventory.total(), before + chest.loot.amount);
+});
+
+test('Schlüssel aufsammeln erhöht den Zähler', () => {
+  const gs = new GameState(777);
+  gs.chooseClass('kaempfer');
+  assert.equal(gs.inventory.keys, 0);
+  gs.pickupKey(gs.keyItems[0]);
+  assert.equal(gs.inventory.keys, 1);
+});
+
+test('Bewohner-Auftrag vergeben und mit Belohnung abschließen', () => {
+  const gs = new GameState(2);
+  gs.chooseClass('kaempfer');
+  const q = gs.talkBewohner();
+  assert.equal(q.state, 'new');
+  // Beide Zähler erfüllen (deckt beide Auftragstypen ab).
+  gs.defeatedCount += 5;
+  gs.pickupCount += 10;
+  const keysBefore = gs.inventory.keys;
+  const done = gs.talkBewohner();
+  assert.equal(done.state, 'done');
+  assert.ok(gs.inventory.keys > keysBefore);
+});
+
+test('Katakomben sind dunkel – außer für den Magier', () => {
+  const k = new GameState(9);
+  k.chooseClass('kaempfer');
+  k.player.x = 1.5;
+  k.player.y = k.grid.height - 1.5;
+  assert.equal(k.currentViertel(), 'katakomben');
+  assert.ok(k.lightLevel() < 1);
+
+  const m = new GameState(9);
+  m.chooseClass('magier');
+  m.player.x = 1.5;
+  m.player.y = m.grid.height - 1.5;
+  assert.equal(m.lightLevel(), 1);
+});
