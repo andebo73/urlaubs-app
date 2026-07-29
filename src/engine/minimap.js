@@ -1,6 +1,7 @@
 // Minikarte (Draufsicht) als Overlay. Render-Layer: zeichnet mit 2D-Context.
 
 import { palette as P } from '../assets/palette.js';
+import { RESOURCES } from '../logic/classes.js';
 
 // ctx: 2D-Context des Haupt-Canvas. (ox, oy) = obere linke Ecke, size = Kantenlänge px.
 export function drawMinimap(ctx, state, ox, oy, size) {
@@ -23,12 +24,12 @@ export function drawMinimap(ctx, state, ox, oy, size) {
     }
   }
 
-  // Karten (gold)
-  ctx.fillStyle = P.gold;
-  for (const c of state.cards) {
-    if (c.collected) continue;
+  // Rohstoffe (in ihrer Farbe)
+  for (const r of state.resources) {
+    if (r.collected) continue;
+    ctx.fillStyle = (RESOURCES[r.resId] && RESOURCES[r.resId].color) || P.gold;
     ctx.beginPath();
-    ctx.arc(ox + c.x * cell, oy + c.y * cell, cell * 0.35, 0, Math.PI * 2);
+    ctx.arc(ox + r.x * cell, oy + r.y * cell, cell * 0.3, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -39,6 +40,18 @@ export function drawMinimap(ctx, state, ox, oy, size) {
     ctx.beginPath();
     ctx.arc(ox + e.x * cell, oy + e.y * cell, cell * 0.35, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  // Händler (goldenes Quadrat mit Rand)
+  if (state.haendler) {
+    const hx = ox + state.haendler.x * cell;
+    const hy = oy + state.haendler.y * cell;
+    const r = cell * 0.5;
+    ctx.fillStyle = P.gold;
+    ctx.fillRect(hx - r, hy - r, r * 2, r * 2);
+    ctx.strokeStyle = P.goldDark;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(hx - r, hy - r, r * 2, r * 2);
   }
 
   // Spieler + Blickrichtung

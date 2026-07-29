@@ -8,6 +8,14 @@ export const palette = {
   mossMid: '#3a5f2c',
   mossDark: '#2a441f',
 
+  // Viertel-Wände: Katakomben (dunkel) und Mechanikerviertel (Metall)
+  cryptLight: '#4a4658',
+  cryptMid: '#332f40',
+  cryptDark: '#211e2a',
+  metalLight: '#8a94a6',
+  metalMid: '#5b6473',
+  metalDark: '#3a4150',
+
   // Boden / Himmel
   floor: '#2b2320',
   floorFar: '#1a1512',

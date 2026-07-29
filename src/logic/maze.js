@@ -2,12 +2,10 @@
 // Erzeugt ein zusammenhängendes, "perfektes" Labyrinth (genau ein Weg zwischen
 // je zwei Zellen), danach werden ein paar Wände zufällig entfernt, damit es
 // Schleifen/Abkürzungen gibt und sich weniger wie eine Sackgassen-Wüste anfühlt.
+// Die Wand-Textur-IDs werden anschließend von den Vierteln gesetzt (viertel.js).
 // Reine Logik: nutzt Rng, kein Math.random(), kein DOM.
 
 import { Grid } from './grid.js';
-
-// Wandtextur-IDs (>0). Werden beim Carven zufällig gesetzt, damit Wände variieren.
-const WALL_IDS = [1, 2];
 
 // cols/rows = Anzahl der begehbaren Zellen pro Achse. Das resultierende Gitter
 // ist (2*cols+1) x (2*rows+1), weil zwischen Zellen Wände liegen.
@@ -80,13 +78,7 @@ export function generateMaze(rng, cols = 10, rows = 10, loopChance = 0.08) {
     }
   }
 
-  // Verbleibenden Wänden eine (deterministische) Textur-ID geben.
-  for (let i = 0; i < grid.cells.length; i++) {
-    if (grid.cells[i] > 0) {
-      grid.cells[i] = WALL_IDS[rng.int(0, WALL_IDS.length - 1)];
-    }
-  }
-
+  // Wände bleiben als 1 markiert; die endgültige Textur-ID setzt viertel.paintWalls.
   return grid;
 }
 

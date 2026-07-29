@@ -1,8 +1,8 @@
 # Abhängigkeiten (nur für Tests, kein Laufzeit-Bedarf)
 node_modules/
 
-# Testartefakte
-test/*-screenshot.png
+# Testartefakte (Screenshots)
+test/*.png
 
 # System
 .DS_Store

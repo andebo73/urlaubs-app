@@ -11,6 +11,7 @@ import { buildGuideHtml } from './engine/guide.js';
 import { InputState } from './input.js';
 import { TouchControls } from './touchcontrols.js';
 import { SVGS } from './assets/svg.js';
+import { CLASSES, RESOURCES } from './logic/classes.js';
 
 const DPR_CAP = 2;
 
@@ -47,11 +48,8 @@ class Game {
   }
 
   async init() {
-    // HUD-Icons einsetzen.
+    // HUD-Icons einsetzen (Klassen-/Gilden-Icons setzt das HUD selbst).
     this._setSvg('icon-heart', SVGS.icon_heart);
-    this._setSvg('icon-star', SVGS.icon_star);
-    this._setSvg('icon-sword', SVGS.icon_sword);
-    this._setSvg('icon-cards', SVGS.icon_cards);
 
     await this.textures.load();
 
@@ -77,6 +75,7 @@ class Game {
 
     this._wireButtons();
     this._wireGuide();
+    this._wireClassSelect();
     window.addEventListener('resize', () => this.resize());
     window.addEventListener('orientationchange', () => this.resize());
     this.resize();
@@ -88,8 +87,38 @@ class Game {
     const loading = document.getElementById('loading');
     if (loading) loading.classList.add('hidden');
 
+    // Klassenwahl zeigen (Spiel startet erst nach der Wahl).
+    this.showClassSelect();
+
     this.ready = true;
     this.loop();
+  }
+
+  // Baut die Klassen-Buttons und verdrahtet die Auswahl.
+  _wireClassSelect() {
+    const list = document.getElementById('class-list');
+    this.classOverlay = document.getElementById('class-overlay');
+    if (!list) return;
+    list.innerHTML = CLASSES.map(
+      (c) => `
+      <button class="class-card" type="button" data-class="${c.id}">
+        <span class="cc-head"><span class="cc-icon">${SVGS[c.icon] || ''}</span>${c.name}</span>
+        <span class="cc-ability">${c.ability}</span>
+        <span class="cc-res"><span class="res-dot" style="background:${RESOURCES[c.resource].color}"></span>sammelt ${RESOURCES[c.resource].name}</span>
+      </button>`
+    ).join('');
+    list.querySelectorAll('.class-card').forEach((btn) => {
+      btn.addEventListener('click', () => this.chooseClass(btn.dataset.class));
+    });
+  }
+
+  showClassSelect() {
+    if (this.classOverlay) this.classOverlay.classList.add('show');
+  }
+
+  chooseClass(classId) {
+    this.state.chooseClass(classId);
+    if (this.classOverlay) this.classOverlay.classList.remove('show');
   }
 
   _setSvg(id, svg) {
@@ -109,6 +138,7 @@ class Game {
   restart() {
     this.state.reset(this._randomSeed());
     if (this.touch) this.touch.game = this.state;
+    this.showClassSelect();
   }
 
   // Klick auf den Header öffnet die Spielanleitung. Der Inhalt wird bei jedem
@@ -278,10 +308,17 @@ window.TammoTest = {
     return game.ready;
   },
   game,
-  reset(seed = 1) {
+  // Deterministischer Neustart mit fester Klasse (Standard: Kämpfer).
+  reset(seed = 1, classId = 'kaempfer') {
     game.state.reset(seed >>> 0);
+    game.state.chooseClass(classId);
     if (game.touch) game.touch.game = game.state;
+    if (game.classOverlay) game.classOverlay.classList.remove('show');
     game.render();
+    return game.state.snapshot();
+  },
+  chooseClass(classId) {
+    game.chooseClass(classId);
     return game.state.snapshot();
   },
   getState() {
@@ -289,16 +326,19 @@ window.TammoTest = {
   },
   getPlayer() {
     const p = game.state.player;
-    return { x: p.x, y: p.y, angle: p.angle, hp: p.hp, maxHp: p.maxHp, level: p.level, xp: p.xp, strength: p.strength };
+    return { x: p.x, y: p.y, angle: p.angle, hp: p.hp, maxHp: p.maxHp, level: p.level, strength: p.strength, classId: p.classId };
+  },
+  getClass() {
+    return game.state.snapshot().class;
   },
   getEnemies() {
     return game.state.enemies.map((e) => ({ id: e.id, x: e.x, y: e.y, hp: e.hp, alive: e.alive && e.hp > 0, name: e.name }));
   },
-  getCards() {
-    return game.state.cards.map((c) => ({ id: c.id, cardId: c.cardId, x: c.x, y: c.y, collected: c.collected }));
+  getResources() {
+    return game.state.inventory.list();
   },
-  getInventory() {
-    return game.state.inventory.collectedIds();
+  guildProgress() {
+    return game.state.snapshot().guild;
   },
   isWallAtPlayer() {
     const p = game.state.player;
@@ -306,10 +346,6 @@ window.TammoTest = {
   },
   move(steps = 1) {
     for (let i = 0; i < steps; i++) game.state.moveForward(1);
-    return this.getPlayer();
-  },
-  back(steps = 1) {
-    for (let i = 0; i < steps; i++) game.state.moveForward(-1);
     return this.getPlayer();
   },
   strafe(steps = 1) {
@@ -329,7 +365,6 @@ window.TammoTest = {
     const near = game.state.nearestEnemy();
     if (!near) return null;
     const e = near.enemy;
-    // Direkt neben den Gegner setzen und Kampf starten.
     game.state.player.x = e.x - 0.6;
     game.state.player.y = e.y;
     game.state.startCombat(e);
@@ -340,17 +375,27 @@ window.TammoTest = {
     return {
       damageDealt: r.damageDealt || 0,
       enemyDefeated: !!r.enemyDefeated,
-      xpGained: r.xpGained || 0,
-      leveledUp: !!r.leveledUp,
+      drop: r.drop || null,
       playerDefeated: !!r.playerDefeated,
       mode: game.state.mode,
     };
   },
   pickupNearest() {
-    const near = game.state.nearestCard();
+    const near = game.state.nearestResource();
     if (!near) return null;
-    const res = game.state.pickup(near.card);
-    return res.cardId;
+    const res = game.state.pickup(near.res);
+    return res.resId;
+  },
+  // Zum Händler teleportieren und abgeben/umtauschen (Aufstieg).
+  handInAtHaendler() {
+    game.state.player.x = game.state.haendler.x - 0.4;
+    game.state.player.y = game.state.haendler.y;
+    return game.state.tradeAndHandIn();
+  },
+  // Bequemlichkeit für Tests: Gilden-Rohstoffe direkt gutschreiben.
+  grantGuildResources(n = 5) {
+    game.state.inventory.add(game.state.player.resource, n);
+    return this.guildProgress();
   },
   frame() {
     game.render();

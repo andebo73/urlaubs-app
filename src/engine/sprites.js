@@ -10,13 +10,16 @@ export function drawSprites(imageData, W, H, state, textures, zBuffer) {
   const { player } = state;
   const { dirX, dirY, planeX, planeY } = camera(player);
 
-  // Sammelbare Objekte: lebende Gegner + nicht gesammelte Karten.
+  // Sichtbare Objekte: lebende Gegner, nicht gesammelte Rohstoffe und der Händler.
   const objs = [];
   for (const e of state.enemies) {
     if (e.alive && e.hp > 0) objs.push({ x: e.x, y: e.y, sprite: e.sprite, kind: 'enemy' });
   }
-  for (const c of state.cards) {
-    if (!c.collected) objs.push({ x: c.x, y: c.y, sprite: c.sprite, kind: 'card', bob: true });
+  for (const r of state.resources) {
+    if (!r.collected) objs.push({ x: r.x, y: r.y, sprite: r.sprite, kind: 'card', bob: true });
+  }
+  if (state.haendler) {
+    objs.push({ x: state.haendler.x, y: state.haendler.y, sprite: state.haendler.sprite, kind: 'enemy' });
   }
 
   // Nach Distanz sortieren (fern zuerst).

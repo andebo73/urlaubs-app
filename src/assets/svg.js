@@ -2,16 +2,15 @@
 // Ausschließlich <rect>/<path>/<circle>/<polygon> mit eigenen Farben – keine
 // externen Bilder, keine Web-Fonts, keine fremden Assets. 100 % lizenzfrei.
 //
-// Wände sind vollflächig (Textur), Sprites/Karten haben transparenten Grund.
+// Wände sind vollflächig (Textur), Sprites/Icons haben transparenten Grund.
 
 import { palette as P } from './palette.js';
+import { RESOURCES } from '../logic/classes.js';
 
 // ---------------------------------------------------------------------------
-// Wand-Texturen (64x64, kachelbar). Backstein-Optik in zwei Varianten.
+// Wand-Texturen (64x64, kachelbar) – je Viertel eine Variante.
 // ---------------------------------------------------------------------------
 function brickWall(light, mid, dark) {
-  // Zwei versetzte Ziegelreihen.
-  const mortar = dark;
   let bricks = '';
   const bw = 32;
   const bh = 16;
@@ -21,40 +20,44 @@ function brickWall(light, mid, dark) {
       const x = col * bw + offset + 1;
       const y = row * bh + 1;
       bricks += `<rect x="${x}" y="${y}" width="${bw - 2}" height="${bh - 2}" rx="2" fill="${mid}"/>`;
-      // kleiner Glanz oben
       bricks += `<rect x="${x}" y="${y}" width="${bw - 2}" height="3" rx="2" fill="${light}" opacity="0.5"/>`;
     }
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-    <rect width="64" height="64" fill="${mortar}"/>
-    ${bricks}
-  </svg>`;
+    <rect width="64" height="64" fill="${dark}"/>${bricks}</svg>`;
+}
+
+// Metallwand (Mechanikerviertel): Platten mit Nieten.
+function metalWall(light, mid, dark) {
+  let rivets = '';
+  for (const [cx, cy] of [[8, 8], [56, 8], [8, 56], [56, 56], [32, 32]]) {
+    rivets += `<circle cx="${cx}" cy="${cy}" r="3" fill="${light}"/><circle cx="${cx}" cy="${cy}" r="1.4" fill="${dark}"/>`;
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+    <rect width="64" height="64" fill="${mid}"/>
+    <rect x="2" y="2" width="60" height="60" rx="4" fill="none" stroke="${dark}" stroke-width="3"/>
+    <line x1="32" y1="2" x2="32" y2="62" stroke="${dark}" stroke-width="2"/>
+    <rect x="4" y="4" width="56" height="6" fill="${light}" opacity="0.25"/>
+    ${rivets}</svg>`;
 }
 
 // ---------------------------------------------------------------------------
-// Kobold-Sprites (transparenter Grund). Kleiner grüner Wicht.
+// Kobold-Sprites (transparenter Grund).
 // ---------------------------------------------------------------------------
 function goblin(scale = 1) {
   const s = scale;
-  const cx = 32;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-    <g transform="translate(${cx},34) scale(${s})">
-      <!-- Körper -->
+    <g transform="translate(32,34) scale(${s})">
       <ellipse cx="0" cy="4" rx="15" ry="17" fill="${P.goblinSkin}"/>
       <ellipse cx="0" cy="4" rx="15" ry="17" fill="none" stroke="${P.goblinSkinDark}" stroke-width="2"/>
-      <!-- Bauchtuch -->
       <path d="M -13 8 Q 0 20 13 8 L 13 20 Q 0 26 -13 20 Z" fill="${P.goblinCloth}"/>
-      <!-- Ohren -->
       <path d="M -14 -6 L -26 -14 L -16 -2 Z" fill="${P.goblinSkin}" stroke="${P.goblinSkinDark}" stroke-width="1.5"/>
       <path d="M 14 -6 L 26 -14 L 16 -2 Z" fill="${P.goblinSkin}" stroke="${P.goblinSkinDark}" stroke-width="1.5"/>
-      <!-- Augen -->
       <circle cx="-6" cy="-2" r="4.5" fill="${P.goblinEye}"/>
       <circle cx="6" cy="-2" r="4.5" fill="${P.goblinEye}"/>
       <circle cx="-6" cy="-2" r="2" fill="#1a1a1a"/>
       <circle cx="6" cy="-2" r="2" fill="#1a1a1a"/>
-      <!-- Nase -->
       <path d="M 0 0 L -3 6 L 3 6 Z" fill="${P.goblinSkinDark}"/>
-      <!-- Mund mit Zähnen -->
       <path d="M -7 10 Q 0 15 7 10" fill="none" stroke="${P.goblinSkinDark}" stroke-width="2"/>
       <polygon points="-4,10 -2,14 0,10" fill="#fff"/>
       <polygon points="4,10 2,14 0,10" fill="#fff"/>
@@ -63,110 +66,122 @@ function goblin(scale = 1) {
 }
 
 // ---------------------------------------------------------------------------
-// Sammelkarten-Sprites (transparenter Grund). Pergamentkarte mit Symbol.
+// Händler-Sprite (transparenter Grund): freundliche Kapuzenfigur mit Münze.
 // ---------------------------------------------------------------------------
-function symbolFor(kind) {
-  switch (kind) {
-    case 'card_pilz': // Pilzkobold
-      return `<path d="M 32 40 Q 22 40 22 28 Q 22 18 32 18 Q 42 18 42 28 Q 42 40 32 40 Z" fill="#c0392b"/>
-              <circle cx="27" cy="26" r="2.5" fill="#fff"/><circle cx="36" cy="24" r="2" fill="#fff"/>
-              <rect x="29" y="38" width="6" height="12" rx="2" fill="#efe4c8" stroke="#b9a06b"/>`;
-    case 'card_moos': // Moosgeist
-      return `<circle cx="32" cy="30" r="12" fill="#4d7c3a"/>
-              <circle cx="27" cy="27" r="2.5" fill="#dff5c0"/><circle cx="37" cy="27" r="2.5" fill="#dff5c0"/>
-              <path d="M 26 36 Q 32 40 38 36" fill="none" stroke="#dff5c0" stroke-width="2"/>`;
-    case 'card_funke': // Funkenkäfer
-      return `<ellipse cx="32" cy="32" rx="10" ry="13" fill="#3a3f5a"/>
-              <line x1="32" y1="20" x2="32" y2="44" stroke="#f6c453" stroke-width="2"/>
-              <circle cx="32" cy="18" r="5" fill="#f6c453"/>
-              <path d="M 22 26 L 12 20 M 42 26 L 52 20" stroke="#f6c453" stroke-width="2"/>`;
-    case 'card_kristall': // Kristalldrache
-      return `<polygon points="32,16 42,30 37,46 27,46 22,30" fill="#4f9df6" stroke="#2b6fd0" stroke-width="2"/>
-              <polygon points="32,16 32,46 22,30" fill="#7bbaf9"/>`;
-    case 'card_schatten': // Schattenwicht
-      return `<path d="M 32 18 Q 44 20 42 36 Q 40 48 32 48 Q 24 48 22 36 Q 20 20 32 18 Z" fill="#3a2f4a"/>
-              <circle cx="27" cy="30" r="3" fill="#a855f7"/><circle cx="37" cy="30" r="3" fill="#a855f7"/>`;
-    case 'card_gold': // Goldkönig
-    default:
-      return `<polygon points="20,42 24,26 32,34 40,26 44,42" fill="#f6c453" stroke="#c99a2e" stroke-width="2"/>
-              <circle cx="24" cy="24" r="3" fill="#f6c453"/><circle cx="32" cy="32" r="3" fill="#f6c453"/><circle cx="40" cy="24" r="3" fill="#f6c453"/>`;
-  }
-}
-
-function card(kind, rarityColor) {
+function haendler() {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-    <g transform="translate(6,4)">
-      <rect x="0" y="0" width="52" height="56" rx="6" fill="${P.cardParchment}" stroke="${rarityColor}" stroke-width="3"/>
-      <rect x="5" y="5" width="42" height="46" rx="3" fill="none" stroke="${P.cardEdge}" stroke-width="1"/>
-      ${symbolFor(kind)}
-    </g>
-  </svg>`;
-}
-
-// Kartenrückseite (z. B. für Sammel-Übersicht, noch nicht gefunden).
-function cardBack() {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-    <g transform="translate(6,4)">
-      <rect x="0" y="0" width="52" height="56" rx="6" fill="${P.stoneMid}" stroke="${P.stoneDark}" stroke-width="3"/>
-      <text x="26" y="38" font-size="30" fill="${P.stoneDark}" text-anchor="middle" font-family="system-ui,sans-serif">?</text>
+    <g transform="translate(32,32)">
+      <!-- Umhang -->
+      <path d="M -16 26 Q -18 -6 0 -20 Q 18 -6 16 26 Z" fill="#7a5230" stroke="#4e3420" stroke-width="2"/>
+      <!-- Kapuze -->
+      <path d="M -13 -6 Q 0 -26 13 -6 Q 0 -14 -13 -6 Z" fill="#5e3f24"/>
+      <!-- Gesicht -->
+      <circle cx="0" cy="-4" r="8" fill="#e9b98c"/>
+      <circle cx="-3" cy="-5" r="1.3" fill="#3a2a1a"/>
+      <circle cx="3" cy="-5" r="1.3" fill="#3a2a1a"/>
+      <path d="M -3 -1 Q 0 1 3 -1" fill="none" stroke="#3a2a1a" stroke-width="1.3"/>
+      <!-- Goldmünze in der Hand -->
+      <circle cx="12" cy="16" r="7" fill="${P.gold}" stroke="${P.goldDark}" stroke-width="2"/>
+      <text x="12" y="20" font-size="9" fill="${P.goldDark}" text-anchor="middle" font-family="system-ui,sans-serif">$</text>
     </g>
   </svg>`;
 }
 
 // ---------------------------------------------------------------------------
-// HUD-Icons (transparenter Grund).
+// Rohstoff-Kristalle (transparenter Grund), Farbe je Typ.
 // ---------------------------------------------------------------------------
+function crystal(color) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+    <g transform="translate(32,34)">
+      <polygon points="0,-18 13,-4 8,18 -8,18 -13,-4" fill="${color}" stroke="#ffffff" stroke-width="1.5" opacity="0.95"/>
+      <polygon points="0,-18 0,18 -13,-4" fill="#ffffff" opacity="0.22"/>
+      <polygon points="0,-18 4,-2 0,4 -4,-2" fill="#ffffff" opacity="0.5"/>
+    </g>
+  </svg>`;
+}
+
+// ---------------------------------------------------------------------------
+// Klassen-Icons (transparenter Grund).
+// ---------------------------------------------------------------------------
+function iconKaempfer(c) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+    <path d="M6 22 L8 20 L17 11 L19 5 L21 7 L15 15 L6 24 Z" fill="${c}"/>
+    <path d="M4 10 L10 4 L14 8 L8 14 Z" fill="${c}" opacity="0.55"/>
+  </svg>`;
+}
+function iconMagier(c) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+    <rect x="5" y="21" width="18" height="3" rx="1.5" transform="rotate(-45 14 22)" fill="${c}"/>
+    <polygon points="20,4 22,9 27,9 23,12 24,17 20,14 16,17 17,12 13,9 18,9" fill="${c}"/>
+  </svg>`;
+}
+function iconSchurke(c) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+    <circle cx="9" cy="9" r="5" fill="none" stroke="${c}" stroke-width="3"/>
+    <rect x="11" y="12" width="3" height="12" fill="${c}"/>
+    <rect x="14" y="18" width="5" height="3" fill="${c}"/>
+    <rect x="14" y="22" width="4" height="3" fill="${c}"/>
+  </svg>`;
+}
+function iconHeiler(c) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+    <rect x="11" y="4" width="6" height="20" rx="2" fill="${c}"/>
+    <rect x="4" y="11" width="20" height="6" rx="2" fill="${c}"/>
+  </svg>`;
+}
+
 function heartIcon() {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
     <path d="M12 21 C 4 14 3 8 7 6 C 10 4.5 12 8 12 8 C 12 8 14 4.5 17 6 C 21 8 20 14 12 21 Z" fill="${P.hpRed}"/>
   </svg>`;
 }
-function starIcon() {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-    <polygon points="12,2 15,9 22,9 16,14 18,21 12,17 6,21 8,14 2,9 9,9" fill="${P.xpBlue}"/>
-  </svg>`;
-}
-function swordIcon() {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-    <path d="M4 20 L6 18 L14 10 L16 4 L18 6 L12 14 L4 22 Z" fill="${P.stoneLight}"/>
-    <rect x="3" y="17" width="4" height="4" transform="rotate(45 5 19)" fill="${P.gold}"/>
-  </svg>`;
-}
-function cardsIcon() {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-    <rect x="4" y="6" width="11" height="14" rx="2" fill="${P.cardParchment}" stroke="${P.cardEdge}" transform="rotate(-8 9 13)"/>
-    <rect x="9" y="4" width="11" height="14" rx="2" fill="${P.gold}" stroke="${P.goldDark}"/>
-  </svg>`;
-}
+
+// Klassenfarben aus der Logik nachziehen (Single Source: classes.js) wäre ideal,
+// hier reichen die Icon-Farben passend zur Gilde.
+const CLASS_COLORS = {
+  class_kaempfer: '#e5674d',
+  class_magier: '#a855f7',
+  class_schurke: '#4f9df6',
+  class_heiler: '#5bbf62',
+};
 
 // ---------------------------------------------------------------------------
-// Export: benannte SVG-Strings + Zuordnung Wand-ID -> Textur.
+// Export: benannte SVG-Strings + Wand-ID -> Textur.
 // ---------------------------------------------------------------------------
 export const SVGS = {
-  wall_stone: brickWall(P.stoneLight, P.stoneMid, P.stoneDark),
-  wall_moss: brickWall(P.mossLight, P.mossMid, P.mossDark),
+  // Wände je Viertel
+  wall_handel: brickWall(P.stoneLight, P.stoneMid, P.stoneDark),
+  wall_pilz: brickWall(P.mossLight, P.mossMid, P.mossDark),
+  wall_katakomben: brickWall(P.cryptLight, P.cryptMid, P.cryptDark),
+  wall_mechanik: metalWall(P.metalLight, P.metalMid, P.metalDark),
+
+  // Sprites
   goblin: goblin(1),
   goblin_gross: goblin(1.25),
-  card_pilz: card('card_pilz', P.rarity['gewöhnlich']),
-  card_moos: card('card_moos', P.rarity['gewöhnlich']),
-  card_funke: card('card_funke', P.rarity['selten']),
-  card_kristall: card('card_kristall', P.rarity['selten']),
-  card_schatten: card('card_schatten', P.rarity['episch']),
-  card_gold: card('card_gold', P.rarity['legendär']),
-  card_back: cardBack(),
+  haendler: haendler(),
+  res_erz: crystal(RESOURCES.erz.color),
+  res_rune: crystal(RESOURCES.rune.color),
+  res_splitter: crystal(RESOURCES.splitter.color),
+  res_kraut: crystal(RESOURCES.kraut.color),
+
+  // Klassen-Icons
+  class_kaempfer: iconKaempfer(CLASS_COLORS.class_kaempfer),
+  class_magier: iconMagier(CLASS_COLORS.class_magier),
+  class_schurke: iconSchurke(CLASS_COLORS.class_schurke),
+  class_heiler: iconHeiler(CLASS_COLORS.class_heiler),
+
+  // HUD
   icon_heart: heartIcon(),
-  icon_star: starIcon(),
-  icon_sword: swordIcon(),
-  icon_cards: cardsIcon(),
 };
 
-// Wand-Textur-ID (aus maze.js) -> SVG-Schlüssel.
+// Wand-Textur-ID (aus viertel.js) -> SVG-Schlüssel.
 export const WALL_TEXTURES = {
-  1: 'wall_stone',
-  2: 'wall_moss',
+  1: 'wall_handel',
+  2: 'wall_pilz',
+  3: 'wall_katakomben',
+  4: 'wall_mechanik',
 };
 
-// Kleiner Helfer: SVG-String -> Data-URL (für <img>/Texturen).
 export function svgToDataUrl(svg) {
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }

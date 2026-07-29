@@ -73,17 +73,32 @@ async function runDesktop(browser, baseUrl) {
   check('keine Konsolen-/Seitenfehler beim Laden', errors.length === 0);
   if (errors.length) console.error('    Fehler:', errors.slice(0, 5));
 
-  // Deterministischer Seed.
-  await page.evaluate(() => window.TammoTest.reset(12345));
+  // Klassenwahl erscheint beim Laden.
+  const classShown = await page
+    .locator('#class-overlay')
+    .evaluate((el) => el.classList.contains('show'));
+  check('Klassenwahl wird angezeigt', classShown);
 
-  // Canvas rendert (nicht leer).
+  // Klasse per Klick wählen -> Overlay weg, Modus explore.
+  await page.click('.class-card[data-class="kaempfer"]');
+  const afterPick = await page.evaluate(() => ({
+    shown: document.getElementById('class-overlay').classList.contains('show'),
+    mode: window.TammoTest.getState().mode,
+    cls: window.TammoTest.getClass().id,
+  }));
+  check('nach Klassenwahl: Overlay weg & Modus explore', !afterPick.shown && afterPick.mode === 'explore');
+  check('gewählte Klasse ist Kämpfer', afterPick.cls === 'kaempfer');
+
+  // Deterministischer Seed + feste Klasse.
+  await page.evaluate(() => window.TammoTest.reset(12345, 'kaempfer'));
+
   const notBlank = await page.evaluate(() => {
     window.TammoTest.frame();
     return !window.TammoTest.canvasIsBlank();
   });
   check('Canvas rendert (nicht einfarbig)', notBlank);
 
-  // Bewegung ändert Position und bleibt außerhalb von Wänden.
+  // Bewegung + Kollision.
   const moveRes = await page.evaluate(() => {
     const before = window.TammoTest.getPlayer();
     let inWall = false;
@@ -97,44 +112,59 @@ async function runDesktop(browser, baseUrl) {
   check('Spieler bewegt sich', moveRes.moved);
   check('Spieler betritt keine Wand', !moveRes.inWall);
 
-  // Encounter -> Kampfmodus.
-  const combat = await page.evaluate(() => {
-    window.TammoTest.forceEncounterNearest();
-    return window.TammoTest.getState().mode;
-  });
-  check("Kampf startet (mode==='combat')", combat === 'combat');
-
-  // Angriffe bis Sieg -> XP und ggf. Level-up.
+  // Kampf -> Beute-Rohstoff.
   const fight = await page.evaluate(() => {
-    const before = window.TammoTest.getState();
-    let xp = 0;
+    window.TammoTest.forceEncounterNearest();
+    const before = window.TammoTest.getResources().reduce((s, r) => s + r.count, 0);
     let defeated = false;
-    let leveled = false;
+    let drop = null;
     for (let i = 0; i < 40 && !defeated; i++) {
       const r = window.TammoTest.attack();
-      xp += r.xpGained;
-      if (r.leveledUp) leveled = true;
-      if (r.enemyDefeated) defeated = true;
+      if (r.enemyDefeated) {
+        defeated = true;
+        drop = r.drop;
+      }
       if (r.playerDefeated) break;
     }
-    const after = window.TammoTest.getState();
-    return { defeated, xp, leveled, beforeEnemies: before.enemyCount, afterEnemies: after.enemyCount };
+    const after = window.TammoTest.getResources().reduce((s, r) => s + r.count, 0);
+    return { defeated, drop, grew: after > before, mode: window.TammoTest.getState().mode };
   });
+  check("Kampf startet und endet (mode zurück auf explore)", fight.mode === 'explore');
   check('Gegner besiegt', fight.defeated);
-  check('XP erhalten (> 0)', fight.xp > 0);
-  check('Gegnerzahl gesunken', fight.afterEnemies < fight.beforeEnemies);
+  check('Beute-Rohstoff erhalten', fight.drop != null && fight.grew);
 
-  // Karte aufsammeln -> Inventar wächst.
-  const card = await page.evaluate(() => {
-    const before = window.TammoTest.getInventory().length;
+  // Rohstoff aufsammeln.
+  const pick = await page.evaluate(() => {
     const id = window.TammoTest.pickupNearest();
-    const after = window.TammoTest.getInventory();
-    return { grew: after.length === before + 1, contains: id != null && after.includes(id), id };
+    const c = window.TammoTest.getResources().find((r) => r.id === id);
+    return { id, count: c ? c.count : 0 };
   });
-  check('Inventar wächst um 1', card.grew);
-  check('aufgesammelte Karte im Inventar', card.contains);
+  check('Rohstoff aufgesammelt', pick.id != null && pick.count >= 1);
 
-  // Minikarte: Klick vergrößert, erneuter Klick verkleinert.
+  // Beim Händler abgeben -> Stufenaufstieg.
+  const level = await page.evaluate(() => {
+    const before = window.TammoTest.getPlayer().level;
+    window.TammoTest.grantGuildResources(5);
+    const res = window.TammoTest.handInAtHaendler();
+    const after = window.TammoTest.getPlayer().level;
+    return { before, after, type: res.type };
+  });
+  check('Händler: Aufstieg nach Abgabe von 5 Rohstoffen', level.type === 'levelup' && level.after === level.before + 1);
+
+  // Spielanleitung öffnet mit aktuellen Werten.
+  await page.click('#hud');
+  const guide = await page.evaluate(() => ({
+    shown: document.getElementById('guide-overlay').classList.contains('show'),
+    text: document.getElementById('guide-content').innerText,
+  }));
+  check('Anleitung öffnet bei Header-Klick', guide.shown);
+  check(
+    'Anleitung ist datengetrieben (Klasse + Stufenkarte + Viertel)',
+    /Spielanleitung/.test(guide.text) && /Stufenkarte/.test(guide.text) && /Viertel/.test(guide.text)
+  );
+  await page.click('#guide-close');
+
+  // Minikarte: Klick vergrößert / verkleinert.
   const rect1 = await page.evaluate(() => {
     window.TammoTest.frame();
     return window.TammoTest.game.minimapRect;
@@ -142,28 +172,10 @@ async function runDesktop(browser, baseUrl) {
   await page.mouse.click(rect1.x + rect1.size / 2, rect1.y + rect1.size / 2);
   const zoomed = await page.evaluate(() => window.TammoTest.game.minimapZoom);
   check('Minikarte vergrößert nach Klick', zoomed === true);
-
   const rect2 = await page.evaluate(() => window.TammoTest.game.minimapRect);
   await page.mouse.click(rect2.x + rect2.size / 2, rect2.y + rect2.size / 2);
-  const backToNormal = await page.evaluate(() => window.TammoTest.game.minimapZoom);
-  check('Minikarte wieder normal nach erneutem Klick', backToNormal === false);
-
-  // Spielanleitung: Klick auf den Header öffnet sie mit aktuellen Werten.
-  await page.click('#hud');
-  const guideOpen = await page
-    .locator('#guide-overlay')
-    .evaluate((el) => el.classList.contains('show'));
-  check('Anleitung öffnet bei Header-Klick', guideOpen);
-  const guideText = await page.locator('#guide-content').innerText();
-  check(
-    'Anleitung ist datengetrieben (Titel + aktuelle Werte)',
-    /Spielanleitung/.test(guideText) && /Stufe/.test(guideText) && /Sammelkarten/.test(guideText)
-  );
-  await page.click('#guide-close');
-  const guideClosed = await page
-    .locator('#guide-overlay')
-    .evaluate((el) => !el.classList.contains('show'));
-  check('Anleitung schließt über X', guideClosed);
+  const back = await page.evaluate(() => window.TammoTest.game.minimapZoom);
+  check('Minikarte wieder normal nach erneutem Klick', back === false);
 
   await page.close();
 }
@@ -175,32 +187,29 @@ async function runMobile(browser, baseUrl) {
   const page = await context.newPage();
   await page.goto(baseUrl);
   await page.waitForFunction(() => window.TammoTest && window.TammoTest.ready, { timeout: 10000 });
-  await page.evaluate(() => window.TammoTest.reset(12345));
+  // Klasse wählen (schließt das Overlay), dann deterministisch setzen.
+  await page.evaluate(() => window.TammoTest.reset(12345, 'kaempfer'));
 
-  // Touch-Steuerung sichtbar.
   const joyVisible = await page.locator('#tc-joystick').isVisible();
   check('Touch-Joystick sichtbar', joyVisible);
-  const attackVisible = await page.locator('#tc-take').isVisible();
-  check('Touch-Buttons sichtbar', attackVisible);
+  const takeVisible = await page.locator('#tc-take').isVisible();
+  check('Touch-Buttons sichtbar', takeVisible);
 
-  // Kein horizontales Scrollen.
   const noHScroll = await page.evaluate(
     () => document.documentElement.scrollWidth <= window.innerWidth + 1
   );
   check('kein horizontales Scrollen', noHScroll);
 
-  // Simulierter Tap auf den Joystick + Ziehen bewegt den Spieler.
   const before = await page.evaluate(() => window.TammoTest.getPlayer());
   const box = await page.locator('#tc-joystick').boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
-  await page.mouse.move(box.x + box.width / 2, box.y + 4); // nach oben = vorwärts
-  await page.waitForTimeout(400); // ein paar Frames laufen lassen
+  await page.mouse.move(box.x + box.width / 2, box.y + 4);
+  await page.waitForTimeout(400);
   await page.mouse.up();
   const after = await page.evaluate(() => window.TammoTest.getPlayer());
   check('Joystick bewegt den Spieler', before.x !== after.x || before.y !== after.y);
 
-  // Screenshot zur Sichtprüfung.
   const shot = path.join(ROOT, 'test', 'mobile-screenshot.png');
   await page.screenshot({ path: shot });
   console.log(`  → Screenshot: ${shot}`);
@@ -211,7 +220,6 @@ async function runMobile(browser, baseUrl) {
 async function main() {
   const server = await startServer();
   const baseUrl = `http://127.0.0.1:${PORT}/`;
-  // Vorinstalliertes Chromium nutzen (Revision passt evtl. nicht zum npm-Treiber).
   const execPath = process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium';
   const launchOpts = { headless: true };
   if (fs.existsSync(execPath)) launchOpts.executablePath = execPath;

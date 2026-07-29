@@ -24,19 +24,20 @@
         <div class="hud-stat">
           <span class="hud-icon" id="icon-heart"></span>
           <div class="bar"><div class="bar-fill hp" id="hud-hp-bar"></div></div>
-          <span class="hud-val" id="hud-hp-text">20/20</span>
+          <span class="hud-val" id="hud-hp-text">26/26</span>
         </div>
-        <div class="hud-stat">
-          <span class="hud-icon" id="icon-star"></span>
-          <div class="bar"><div class="bar-fill xp" id="hud-xp-bar"></div></div>
-          <span class="hud-val" id="hud-xp-text">0/10</span>
+        <div class="hud-stat" title="Stufenkarte: Gilden-Rohstoffe für die nächste Stufe">
+          <span class="hud-icon small" id="hud-guild-icon"></span>
+          <div class="bar"><div class="bar-fill guild" id="hud-guild-bar"></div></div>
+          <span class="hud-val" id="hud-guild-text">0/5</span>
         </div>
         <div class="hud-chips">
-          <span class="chip">Stufe <b id="hud-level">1</b></span>
-          <span class="chip"><span class="hud-icon small" id="icon-sword"></span><b id="hud-strength">3</b></span>
-          <span class="chip"><span class="hud-icon small" id="icon-cards"></span><b id="hud-cards">0/6</b></span>
+          <span class="chip">Stufe <b id="hud-level">1/5</b></span>
+          <span class="chip class-chip"><span class="hud-icon small" id="hud-class-icon"></span><b id="hud-class">Kämpfer</b></span>
+          <span class="chip"><b id="hud-viertel">Handelsviertel</b></span>
           <span class="chip guide-hint" title="Spielanleitung öffnen">ⓘ Anleitung</span>
         </div>
+        <div class="hud-res" id="hud-res"></div>
       </div>
 
       <!-- Ereignistext -->
@@ -64,6 +65,15 @@
             <button id="btn-attack" class="btn primary" type="button">Angreifen</button>
             <button id="btn-flee" class="btn" type="button">Fliehen</button>
           </div>
+        </div>
+      </div>
+
+      <!-- Klassenwahl-Overlay -->
+      <div id="class-overlay" class="overlay classsel">
+        <div class="class-box">
+          <h1>Wähle deine Klasse</h1>
+          <p class="class-intro">Jede Klasse sammelt einen eigenen Rohstoff und spielt sich anders.</p>
+          <div id="class-list" class="class-list"></div>
         </div>
       </div>
 

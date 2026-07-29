@@ -1,52 +1,53 @@
-// Kartensammlung des Spielers. Reine Logik: kein DOM.
-// Speichert, welche Karten-Typen (cardId) bereits gefunden wurden, inkl. Anzahl.
+// Rohstoff-Inventar des Spielers (nach Farbe/Typ gezählt). Reine Logik: kein DOM.
 
-import { CARD_DEFS } from './entities.js';
+import { RESOURCE_IDS, RESOURCES } from './classes.js';
 
 export class Inventory {
   constructor() {
-    // cardId -> Anzahl
     this.counts = new Map();
+    for (const id of RESOURCE_IDS) this.counts.set(id, 0);
   }
 
-  add(cardId) {
-    this.counts.set(cardId, (this.counts.get(cardId) || 0) + 1);
+  add(id, n = 1) {
+    this.counts.set(id, (this.counts.get(id) || 0) + n);
   }
 
-  has(cardId) {
-    return (this.counts.get(cardId) || 0) > 0;
+  remove(id, n = 1) {
+    this.counts.set(id, Math.max(0, (this.counts.get(id) || 0) - n));
   }
 
-  count(cardId) {
-    return this.counts.get(cardId) || 0;
+  count(id) {
+    return this.counts.get(id) || 0;
   }
 
-  // Anzahl unterschiedlicher gesammelter Kartentypen.
-  uniqueCount() {
-    let n = 0;
-    for (const v of this.counts.values()) if (v > 0) n++;
-    return n;
+  total() {
+    let s = 0;
+    for (const v of this.counts.values()) s += v;
+    return s;
   }
 
-  // Gesamtzahl aller definierten Karten (für "x von y").
-  static total() {
-    return CARD_DEFS.length;
+  // Rohstoff (außer exceptId) mit der größten Menge – für den Umtausch.
+  mostAbundantOther(exceptId) {
+    let best = null;
+    let bestN = 0;
+    for (const id of RESOURCE_IDS) {
+      if (id === exceptId) continue;
+      const n = this.count(id);
+      if (n > bestN) {
+        bestN = n;
+        best = id;
+      }
+    }
+    return best ? { id: best, count: bestN } : null;
   }
 
-  // Liste aller Kartentypen mit Sammelstatus (für HUD/Kartenübersicht).
+  // Liste für HUD/Guide: [{id, name, color, count}]
   list() {
-    return CARD_DEFS.map((d) => ({
-      id: d.id,
-      name: d.name,
-      rarity: d.rarity,
-      sprite: d.sprite,
-      count: this.count(d.id),
-      collected: this.has(d.id),
+    return RESOURCE_IDS.map((id) => ({
+      id,
+      name: RESOURCES[id].name,
+      color: RESOURCES[id].color,
+      count: this.count(id),
     }));
-  }
-
-  // Nur die IDs der gesammelten Karten (für Tests).
-  collectedIds() {
-    return CARD_DEFS.filter((d) => this.has(d.id)).map((d) => d.id);
   }
 }
