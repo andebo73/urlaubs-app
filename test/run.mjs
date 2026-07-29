@@ -148,6 +148,23 @@ async function runDesktop(browser, baseUrl) {
   const backToNormal = await page.evaluate(() => window.TammoTest.game.minimapZoom);
   check('Minikarte wieder normal nach erneutem Klick', backToNormal === false);
 
+  // Spielanleitung: Klick auf den Header öffnet sie mit aktuellen Werten.
+  await page.click('#hud');
+  const guideOpen = await page
+    .locator('#guide-overlay')
+    .evaluate((el) => el.classList.contains('show'));
+  check('Anleitung öffnet bei Header-Klick', guideOpen);
+  const guideText = await page.locator('#guide-content').innerText();
+  check(
+    'Anleitung ist datengetrieben (Titel + aktuelle Werte)',
+    /Spielanleitung/.test(guideText) && /Stufe/.test(guideText) && /Sammelkarten/.test(guideText)
+  );
+  await page.click('#guide-close');
+  const guideClosed = await page
+    .locator('#guide-overlay')
+    .evaluate((el) => !el.classList.contains('show'));
+  check('Anleitung schließt über X', guideClosed);
+
   await page.close();
 }
 

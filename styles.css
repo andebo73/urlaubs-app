@@ -59,7 +59,13 @@ body {
   gap: 8px 16px;
   align-items: center;
   background: linear-gradient(180deg, rgba(8, 10, 16, 0.75), rgba(8, 10, 16, 0));
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.guide-hint {
+  color: var(--accent) !important;
+  font-weight: 700;
 }
 
 .hud-stat {
@@ -333,6 +339,116 @@ body {
 }
 .btn:active {
   transform: translateY(1px);
+}
+
+/* ---------- Spielanleitung ---------- */
+.guide-box {
+  position: relative;
+  width: min(560px, 94vw);
+  max-height: 86dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 22px 22px 26px;
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  text-align: left;
+}
+.guide-close {
+  position: sticky;
+  top: 0;
+  float: right;
+  margin: -6px -6px 0 8px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+}
+.guide-box h1 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  color: var(--accent);
+}
+.guide-box h2 {
+  margin: 18px 0 8px;
+  font-size: 17px;
+  color: var(--text);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding-bottom: 4px;
+}
+.guide-box h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+.guide-box p {
+  margin: 0 0 6px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.guide-box .g-lead {
+  color: var(--text);
+}
+.guide-box ul {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+.guide-box li {
+  margin: 4px 0;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.guide-box b {
+  color: var(--text);
+}
+.g-cols {
+  display: flex;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+.g-cols > div {
+  flex: 1 1 180px;
+}
+.guide-box kbd {
+  display: inline-block;
+  min-width: 18px;
+  padding: 1px 6px;
+  margin: 0 1px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  text-align: center;
+}
+.g-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.g-rar {
+  font-size: 12px;
+  margin-left: 6px;
+}
+.g-tag {
+  float: right;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.g-tag.got {
+  color: #7bd67b;
+}
+.g-tip {
+  margin-top: 16px;
+  color: var(--accent);
 }
 
 /* ---------- Laden ---------- */

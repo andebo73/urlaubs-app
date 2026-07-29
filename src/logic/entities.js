@@ -13,7 +13,7 @@ export const CARD_DEFS = [
 ];
 
 // Gegnertypen. Werte skalieren leicht mit der Labyrinth-Tiefe.
-const ENEMY_TYPES = [
+export const ENEMY_TYPES = [
   { type: 'kobold', name: 'Kobold', baseHp: 8, strength: 2, xpReward: 6, sprite: 'goblin' },
   { type: 'wachkobold', name: 'Wachkobold', baseHp: 14, strength: 3, xpReward: 11, sprite: 'goblin_gross' },
 ];

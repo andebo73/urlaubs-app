@@ -7,6 +7,7 @@ import { castWalls } from './engine/raycaster.js';
 import { drawSprites } from './engine/sprites.js';
 import { drawMinimap } from './engine/minimap.js';
 import { Hud } from './engine/hud.js';
+import { buildGuideHtml } from './engine/guide.js';
 import { InputState } from './input.js';
 import { TouchControls } from './touchcontrols.js';
 import { SVGS } from './assets/svg.js';
@@ -75,6 +76,7 @@ class Game {
     );
 
     this._wireButtons();
+    this._wireGuide();
     window.addEventListener('resize', () => this.resize());
     window.addEventListener('orientationchange', () => this.resize());
     this.resize();
@@ -109,6 +111,32 @@ class Game {
     if (this.touch) this.touch.game = this.state;
   }
 
+  // Klick auf den Header öffnet die Spielanleitung. Der Inhalt wird bei jedem
+  // Öffnen frisch aus den aktuellen Spiel-Daten erzeugt -> immer aktuell.
+  _wireGuide() {
+    const hud = document.getElementById('hud');
+    const overlay = document.getElementById('guide-overlay');
+    const content = document.getElementById('guide-content');
+    const closeBtn = document.getElementById('guide-close');
+    if (!hud || !overlay || !content) return;
+
+    this.openGuide = () => {
+      content.innerHTML = buildGuideHtml(this.state);
+      overlay.classList.add('show');
+    };
+    this.closeGuide = () => overlay.classList.remove('show');
+
+    hud.addEventListener('click', () => this.openGuide());
+    if (closeBtn) closeBtn.addEventListener('click', () => this.closeGuide());
+    // Klick auf den abgedunkelten Hintergrund schließt.
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) this.closeGuide();
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this.closeGuide();
+    });
+  }
+
   resize() {
     const cssW = window.innerWidth;
     const cssH = window.innerHeight;
@@ -128,6 +156,11 @@ class Game {
     this.buffer.height = this.renderH;
     this.zBuffer = new Float32Array(this.renderW);
     this.imageData = this.bufferCtx.createImageData(this.renderW, this.renderH);
+
+    // Unterkante des (klickbaren) Headers merken, damit die Minikarte darunter
+    // sitzt und Klicks sich nicht überschneiden.
+    const hud = document.getElementById('hud');
+    this.headerBottomCss = hud ? hud.getBoundingClientRect().bottom : 64;
   }
 
   // Ein Simulationsschritt aus der aktuellen Eingabe (ein Frame).
@@ -181,7 +214,7 @@ class Game {
     } else {
       size = Math.min(150, cssW * 0.34);
       x = cssW - size - 10;
-      y = 70;
+      y = (this.headerBottomCss || 64) + 8;
     }
     this.minimapRect = { x, y, size };
     drawMinimap(dctx, this.state, x * dpr, y * dpr, size * dpr);

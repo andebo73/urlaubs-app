@@ -35,6 +35,7 @@
           <span class="chip">Stufe <b id="hud-level">1</b></span>
           <span class="chip"><span class="hud-icon small" id="icon-sword"></span><b id="hud-strength">3</b></span>
           <span class="chip"><span class="hud-icon small" id="icon-cards"></span><b id="hud-cards">0/6</b></span>
+          <span class="chip guide-hint" title="Spielanleitung öffnen">ⓘ Anleitung</span>
         </div>
       </div>
 
@@ -72,6 +73,14 @@
           <h1 id="end-title">Gewonnen!</h1>
           <p id="end-text"></p>
           <button id="btn-restart" class="btn primary" type="button">Neustart</button>
+        </div>
+      </div>
+
+      <!-- Spielanleitung (öffnet bei Klick auf den Header) -->
+      <div id="guide-overlay" class="overlay guide">
+        <div class="guide-box">
+          <button id="guide-close" class="guide-close" type="button" aria-label="Schließen">✕</button>
+          <div id="guide-content"></div>
         </div>
       </div>
 
