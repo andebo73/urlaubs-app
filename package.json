@@ -1,0 +1,15 @@
+{
+  "name": "tammo-stadt",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Tammo Stadt – ein 3D-Labyrinth-Abenteuer (Standalone-HTML, ohne Build-Schritt).",
+  "scripts": {
+    "serve": "python3 -m http.server 8000",
+    "test:logic": "node --test test/logic.test.mjs",
+    "test:e2e": "node test/run.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.0"
+  }
+}

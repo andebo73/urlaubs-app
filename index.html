@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Tammo Stadt</title>
+    <!-- Selbst gezeichnetes SVG-Favicon (lizenzfrei, keine externe Datei). -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a441f'/%3E%3Cpolygon points='16,5 20,13 29,13 22,19 24,28 16,23 8,28 10,19 3,13 12,13' fill='%23f6c453'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="game">
+      <!-- 3D-Ansicht -->
+      <canvas id="view"></canvas>
+
+      <!-- HUD oben -->
+      <div id="hud" class="hud-top">
+        <div class="hud-stat">
+          <span class="hud-icon" id="icon-heart"></span>
+          <div class="bar"><div class="bar-fill hp" id="hud-hp-bar"></div></div>
+          <span class="hud-val" id="hud-hp-text">20/20</span>
+        </div>
+        <div class="hud-stat">
+          <span class="hud-icon" id="icon-star"></span>
+          <div class="bar"><div class="bar-fill xp" id="hud-xp-bar"></div></div>
+          <span class="hud-val" id="hud-xp-text">0/10</span>
+        </div>
+        <div class="hud-chips">
+          <span class="chip">Stufe <b id="hud-level">1</b></span>
+          <span class="chip"><span class="hud-icon small" id="icon-sword"></span><b id="hud-strength">3</b></span>
+          <span class="chip"><span class="hud-icon small" id="icon-cards"></span><b id="hud-cards">0/6</b></span>
+        </div>
+      </div>
+
+      <!-- Ereignistext -->
+      <div id="hud-message" class="hud-message"></div>
+
+      <!-- Minikarte wird als Overlay auf das Canvas gezeichnet -->
+
+      <!-- Touch-Steuerung (nur auf Touch-Geräten sichtbar) -->
+      <div id="touch-controls" class="touch-controls"></div>
+
+      <!-- Hilfe/Tastatur (Desktop) -->
+      <div id="help" class="help">
+        WASD / Pfeile: Bewegen &nbsp;·&nbsp; Maus ziehen / ◀▶: Umsehen &nbsp;·&nbsp;
+        Leertaste: Nehmen &nbsp;·&nbsp; F: Angreifen &nbsp;·&nbsp; R: Neustart
+      </div>
+
+      <!-- Kampf-Overlay -->
+      <div id="combat-overlay" class="overlay combat">
+        <div class="combat-box">
+          <div class="combat-enemy" id="combat-enemy-art"></div>
+          <div class="combat-name" id="combat-enemy-name">Kobold</div>
+          <div class="bar big"><div class="bar-fill enemy-hp" id="combat-enemy-hp-bar"></div></div>
+          <div class="combat-hp" id="combat-enemy-hp-text">10/10</div>
+          <div class="combat-actions">
+            <button id="btn-attack" class="btn primary" type="button">Angreifen</button>
+            <button id="btn-flee" class="btn" type="button">Fliehen</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ende-Overlay -->
+      <div id="end-overlay" class="overlay end">
+        <div class="end-box">
+          <h1 id="end-title">Gewonnen!</h1>
+          <p id="end-text"></p>
+          <button id="btn-restart" class="btn primary" type="button">Neustart</button>
+        </div>
+      </div>
+
+      <!-- Ladeanzeige -->
+      <div id="loading" class="loading">Lade Tammo Stadt …</div>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
