@@ -202,6 +202,57 @@ function heartIcon() {
     <path d="M12 21 C 4 14 3 8 7 6 C 10 4.5 12 8 12 8 C 12 8 14 4.5 17 6 C 21 8 20 14 12 21 Z" fill="${P.hpRed}"/>
   </svg>`;
 }
+function shieldIcon() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+    <path d="M12 2 L20 5 V11 C20 16 16 20 12 22 C8 20 4 16 4 11 V5 Z" fill="#8a94a6" stroke="#5b6473" stroke-width="1.2"/>
+    <path d="M12 2 L20 5 V11 C20 16 16 20 12 22 Z" fill="#6b7280" opacity="0.5"/>
+  </svg>`;
+}
+
+// ---------------------------------------------------------------------------
+// Waffen-Viewmodel (transparenter Grund): wird unten in die Ansicht gezeichnet.
+// Eine Hand hält die klassentypische Waffe von rechts unten.
+// ---------------------------------------------------------------------------
+function hand() {
+  return `<ellipse cx="80" cy="112" rx="16" ry="12" fill="#e9b98c"/>
+          <rect x="70" y="100" width="20" height="16" rx="6" fill="#e9b98c"/>`;
+}
+function weaponKaempfer() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+    <g transform="rotate(-18 80 110)">
+      <rect x="74" y="20" width="10" height="80" rx="3" fill="#cbd3df"/>
+      <polygon points="74,20 84,20 79,6" fill="#eef2f7"/>
+      <rect x="74" y="20" width="4" height="80" fill="#eef2f7" opacity="0.6"/>
+      <rect x="62" y="98" width="34" height="8" rx="3" fill="${P.gold}"/>
+      <rect x="76" y="104" width="6" height="14" fill="${P.goldDark}"/>
+    </g>${hand()}</svg>`;
+}
+function weaponMagier() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+    <g transform="rotate(-14 80 110)">
+      <rect x="76" y="16" width="8" height="96" rx="4" fill="#6e4a2b"/>
+      <polygon points="80,2 86,16 94,16 88,24 90,34 80,28 70,34 72,24 66,16 74,16" fill="#a855f7"/>
+      <circle cx="80" cy="18" r="4" fill="#e6c9ff"/>
+    </g>${hand()}</svg>`;
+}
+function weaponSchurke() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+    <g transform="rotate(-20 80 110)">
+      <polygon points="80,26 86,96 74,96" fill="#cbd3df"/>
+      <polygon points="80,26 80,96 74,96" fill="#eef2f7" opacity="0.7"/>
+      <rect x="66" y="94" width="28" height="7" rx="3" fill="#4f9df6"/>
+      <rect x="76" y="99" width="6" height="16" fill="#2b6fd0"/>
+    </g>${hand()}</svg>`;
+}
+function weaponHeiler() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+    <g transform="rotate(-14 80 110)">
+      <rect x="76" y="18" width="8" height="94" rx="4" fill="#6e4a2b"/>
+      <circle cx="80" cy="16" r="12" fill="#5bbf62"/>
+      <rect x="77" y="9" width="6" height="14" rx="1" fill="#fff"/>
+      <rect x="73" y="13" width="14" height="6" rx="1" fill="#fff"/>
+    </g>${hand()}</svg>`;
+}
 
 // Klassenfarben aus der Logik nachziehen (Single Source: classes.js) wäre ideal,
 // hier reichen die Icon-Farben passend zur Gilde.
@@ -245,6 +296,13 @@ export const SVGS = {
 
   // HUD
   icon_heart: heartIcon(),
+  icon_shield: shieldIcon(),
+
+  // Waffen-Viewmodel je Klasse
+  weapon_kaempfer: weaponKaempfer(),
+  weapon_magier: weaponMagier(),
+  weapon_schurke: weaponSchurke(),
+  weapon_heiler: weaponHeiler(),
 };
 
 // Wand-Textur-ID (aus viertel.js) -> SVG-Schlüssel.

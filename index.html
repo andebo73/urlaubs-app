@@ -35,6 +35,7 @@
           <span class="chip">Stufe <b id="hud-level">1/5</b></span>
           <span class="chip class-chip"><span class="hud-icon small" id="hud-class-icon"></span><b id="hud-class">Kämpfer</b></span>
           <span class="chip"><b id="hud-viertel">Handelsviertel</b></span>
+          <span class="chip"><span class="hud-icon small" id="icon-shield"></span><b id="hud-armor">0</b></span>
           <span class="chip">🔑 <b id="hud-keys">0</b></span>
           <span class="chip quest-chip" id="hud-quest-chip" hidden><b id="hud-quest"></b></span>
           <span class="chip guide-hint" title="Spielanleitung öffnen">ⓘ Anleitung</span>
@@ -46,6 +47,12 @@
       <div id="hud-message" class="hud-message"></div>
 
       <!-- Minikarte wird als Overlay auf das Canvas gezeichnet -->
+
+      <!-- Sichtbare Waffe (Viewmodel) -->
+      <div id="weapon" class="weapon"><span class="weapon-tier" id="weapon-tier"></span></div>
+
+      <!-- Ton an/aus -->
+      <button id="btn-mute" class="mute-btn" type="button" title="Ton an/aus">🔊</button>
 
       <!-- Touch-Steuerung (nur auf Touch-Geräten sichtbar) -->
       <div id="touch-controls" class="touch-controls"></div>
@@ -85,6 +92,20 @@
           <h1 id="end-title">Gewonnen!</h1>
           <p id="end-text"></p>
           <button id="btn-restart" class="btn primary" type="button">Neustart</button>
+        </div>
+      </div>
+
+      <!-- Händler-Shop -->
+      <div id="shop-overlay" class="overlay shop">
+        <div class="shop-box">
+          <button id="shop-close" class="guide-close" type="button" aria-label="Schließen">✕</button>
+          <h1>Händler</h1>
+          <div id="shop-info" class="shop-info"></div>
+          <div class="shop-actions">
+            <button id="shop-level" class="btn primary" type="button">Aufsteigen</button>
+            <button id="shop-weapon" class="btn" type="button">Waffe verbessern</button>
+            <button id="shop-armor" class="btn" type="button">Rüstung verbessern</button>
+          </div>
         </div>
       </div>
 

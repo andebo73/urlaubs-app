@@ -18,6 +18,7 @@ export class Hud {
       classIcon: g('hud-class-icon'),
       className: g('hud-class'),
       viertel: g('hud-viertel'),
+      armor: g('hud-armor'),
       keys: g('hud-keys'),
       questChip: g('hud-quest-chip'),
       quest: g('hud-quest'),
@@ -60,6 +61,7 @@ export class Hud {
 
     if (this.el.level) this.el.level.textContent = `${p.level}/${s.maxLevel}`;
     if (this.el.viertel) this.el.viertel.textContent = s.viertelName;
+    if (this.el.armor) this.el.armor.textContent = String(s.equip.armorTier);
     if (this.el.keys) this.el.keys.textContent = String(s.keys);
 
     // Auftrags-Chip (nur wenn ein Auftrag aktiv ist).

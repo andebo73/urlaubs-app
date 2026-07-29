@@ -7,6 +7,7 @@ import { castWalls } from './engine/raycaster.js';
 import { drawSprites } from './engine/sprites.js';
 import { drawMinimap } from './engine/minimap.js';
 import { Hud } from './engine/hud.js';
+import { Sfx } from './engine/audio.js';
 import { buildGuideHtml } from './engine/guide.js';
 import { InputState } from './input.js';
 import { TouchControls } from './touchcontrols.js';
@@ -29,6 +30,9 @@ class Game {
     this.state = new GameState(this._randomSeed());
     this.input = new InputState();
     this.hud = new Hud(document);
+    this.sfx = new Sfx();
+    this.shopOpen = false;
+    this._weaponSig = null;
 
     this.renderW = 1;
     this.renderH = 1;
@@ -50,6 +54,7 @@ class Game {
   async init() {
     // HUD-Icons einsetzen (Klassen-/Gilden-Icons setzt das HUD selbst).
     this._setSvg('icon-heart', SVGS.icon_heart);
+    this._setSvg('icon-shield', SVGS.icon_shield);
 
     await this.textures.load();
 
@@ -76,6 +81,12 @@ class Game {
     this._wireButtons();
     this._wireGuide();
     this._wireClassSelect();
+    this._wireShop();
+    this._wireMute();
+    // AudioContext bei der ersten Nutzergeste aktivieren (Autoplay-Regeln).
+    const resumeAudio = () => this.sfx.ensure();
+    window.addEventListener('pointerdown', resumeAudio, { once: true });
+    window.addEventListener('keydown', resumeAudio, { once: true });
     window.addEventListener('resize', () => this.resize());
     window.addEventListener('orientationchange', () => this.resize());
     this.resize();
@@ -119,6 +130,109 @@ class Game {
   chooseClass(classId) {
     this.state.chooseClass(classId);
     if (this.classOverlay) this.classOverlay.classList.remove('show');
+    this.sfx.play('shop');
+  }
+
+  // --- Händler-Shop -------------------------------------------------------
+  _wireShop() {
+    this.shopOverlay = document.getElementById('shop-overlay');
+    const level = document.getElementById('shop-level');
+    const weapon = document.getElementById('shop-weapon');
+    const armor = document.getElementById('shop-armor');
+    const close = document.getElementById('shop-close');
+    if (level)
+      level.addEventListener('click', () => {
+        const r = this.state.tradeAndHandIn();
+        this.sfx.play(r.type === 'levelup' ? 'level' : 'error');
+        if (this.state.mode === 'win') this.closeShop();
+        this.refreshShop();
+      });
+    if (weapon)
+      weapon.addEventListener('click', () => {
+        const r = this.state.buyWeapon();
+        this.sfx.play(r.ok ? 'buy' : 'error');
+        this.refreshShop();
+      });
+    if (armor)
+      armor.addEventListener('click', () => {
+        const r = this.state.buyArmor();
+        this.sfx.play(r.ok ? 'buy' : 'error');
+        this.refreshShop();
+      });
+    if (close) close.addEventListener('click', () => this.closeShop());
+    if (this.shopOverlay)
+      this.shopOverlay.addEventListener('click', (e) => {
+        if (e.target === this.shopOverlay) this.closeShop();
+      });
+  }
+
+  openShop() {
+    this.shopOpen = true;
+    this.refreshShop();
+    if (this.shopOverlay) this.shopOverlay.classList.add('show');
+  }
+  closeShop() {
+    this.shopOpen = false;
+    if (this.shopOverlay) this.shopOverlay.classList.remove('show');
+  }
+  refreshShop() {
+    const info = document.getElementById('shop-info');
+    const s = this.state.snapshot();
+    if (info) {
+      const wc = s.equip.weaponCost;
+      const ac = s.equip.armorCost;
+      info.innerHTML = `
+        <div class="row"><span>Stufenkarte</span><b>${s.guild.have}/${s.guild.need} ${s.class.resourceName}</b></div>
+        <div class="row"><span>Rohstoffe gesamt</span><b>${s.totalResources}</b></div>
+        <div class="row"><span>Waffe</span><b>Stufe ${s.equip.weaponTier}/${s.equip.maxTier} · Angriff ${s.equip.attackPower}</b></div>
+        <div class="row"><span>Rüstung</span><b>Stufe ${s.equip.armorTier}/${s.equip.maxTier}</b></div>`;
+      const lvlBtn = document.getElementById('shop-level');
+      const wBtn = document.getElementById('shop-weapon');
+      const aBtn = document.getElementById('shop-armor');
+      if (lvlBtn) {
+        lvlBtn.textContent = s.player.isMaster ? 'Meister erreicht' : `Aufsteigen (5 ${s.class.resourceName})`;
+        lvlBtn.disabled = s.player.isMaster;
+      }
+      if (wBtn) {
+        wBtn.textContent = wc == null ? 'Waffe max.' : `Waffe verbessern (${wc} Rohstoffe)`;
+        wBtn.disabled = wc == null || s.totalResources < wc;
+      }
+      if (aBtn) {
+        aBtn.textContent = ac == null ? 'Rüstung max.' : `Rüstung verbessern (${ac} Rohstoffe)`;
+        aBtn.disabled = ac == null || s.totalResources < ac;
+      }
+    }
+  }
+
+  _wireMute() {
+    const btn = document.getElementById('btn-mute');
+    if (!btn) return;
+    this.muteBtn = btn;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const muted = this.sfx.toggleMute();
+      btn.textContent = muted ? '🔇' : '🔊';
+      if (!muted) this.sfx.play('pickup');
+    });
+  }
+
+  // Sichtbare Waffe unten aktualisieren (nur bei Klassen-/Stufenwechsel).
+  updateWeapon() {
+    const el = document.getElementById('weapon');
+    if (!el) return;
+    if (this.state.mode === 'classselect') {
+      el.style.display = 'none';
+      return;
+    }
+    el.style.display = '';
+    const p = this.state.player;
+    const sig = `${p.classId}:${p.weaponTier}`;
+    if (sig === this._weaponSig) return;
+    this._weaponSig = sig;
+    const svg = SVGS['weapon_' + p.classId] || '';
+    let pips = '';
+    for (let i = 0; i < p.weaponTier; i++) pips += '<i></i>';
+    el.innerHTML = svg + `<span class="weapon-tier">${pips}</span>`;
   }
 
   _setSvg(id, svg) {
@@ -138,6 +252,8 @@ class Game {
   restart() {
     this.state.reset(this._randomSeed());
     if (this.touch) this.touch.game = this.state;
+    this.closeShop();
+    this._weaponSig = null;
     this.showClassSelect();
   }
 
@@ -201,18 +317,57 @@ class Game {
       this.restart();
       return;
     }
+    if (this.shopOpen) return; // Shop offen -> Spiel pausiert
 
     if (this.state.mode === 'explore') {
       const a = this.input.axes();
       if (a.forward) this.state.moveForward(a.forward);
       if (a.strafe) this.state.strafe(a.strafe);
       if (a.turn) this.state.turn(a.turn);
-      if (actions.interact) this.state.interact();
-      if (actions.attack) this.state.interact();
+      if (actions.interact || actions.attack) this._handleInteract(this.state.interact());
     } else if (this.state.mode === 'combat') {
-      if (actions.attack || actions.interact) this.state.attack();
-      if (actions.flee) this.state.flee();
+      if (actions.attack || actions.interact) this._handleAttack(this.state.attack());
+      if (actions.flee) {
+        this.state.flee();
+        this.sfx.play('door');
+      }
     }
+  }
+
+  _handleInteract(res) {
+    switch (res && res.type) {
+      case 'shop':
+        this.openShop();
+        this.sfx.play('shop');
+        break;
+      case 'resource':
+        this.sfx.play('pickup');
+        break;
+      case 'key':
+        this.sfx.play('key');
+        break;
+      case 'chest':
+        this.sfx.play(res.opened ? 'chest' : 'error');
+        break;
+      case 'door':
+        this.sfx.play(res.opened ? 'door' : 'error');
+        break;
+      case 'combat':
+        this.sfx.play('hit');
+        break;
+      case 'quest':
+        this.sfx.play('quest');
+        break;
+      default:
+        break;
+    }
+  }
+
+  _handleAttack(res) {
+    if (!res || res.type !== 'attack') return;
+    if (res.enemyDefeated) this.sfx.play('defeat');
+    else if (res.playerDefeated) this.sfx.play('lose');
+    else this.sfx.play('hit');
   }
 
   render() {
@@ -260,6 +415,7 @@ class Game {
       }
     }
 
+    this.updateWeapon();
     this.hud.update(this.state);
   }
 
@@ -450,6 +606,34 @@ window.TammoTest = {
   grantGuildResources(n = 5) {
     game.state.inventory.add(game.state.player.resource, n);
     return this.guildProgress();
+  },
+  // --- Stufe 3: Ausrüstung, Shop, Ton ---
+  getEquipment() {
+    return game.state.snapshot().equip;
+  },
+  grantResources(id, n = 10) {
+    game.state.inventory.add(id, n);
+    return game.state.inventory.total();
+  },
+  buyWeapon() {
+    return game.state.buyWeapon();
+  },
+  buyArmor() {
+    return game.state.buyArmor();
+  },
+  openShopAtHaendler() {
+    game.state.player.x = game.state.haendler.x - 0.4;
+    game.state.player.y = game.state.haendler.y;
+    const r = game.state.interact();
+    if (r && r.type === 'shop') game.openShop();
+    return { type: r && r.type, shopOpen: game.shopOpen };
+  },
+  closeShop() {
+    game.closeShop();
+    return game.shopOpen;
+  },
+  toggleMute() {
+    return game.sfx.toggleMute();
   },
   frame() {
     game.render();

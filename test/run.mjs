@@ -218,6 +218,47 @@ async function runDesktop(browser, baseUrl) {
   });
   check('Bewohner vergibt einen Auftrag', quest.state === 'new' && quest.has);
 
+  // --- Stufe 3 ---
+  // Händler öffnet den Shop.
+  const shop = await page.evaluate(() => window.TammoTest.openShopAtHaendler());
+  check('Händler öffnet den Shop', shop.type === 'shop' && shop.shopOpen === true);
+  const shopVisible = await page
+    .locator('#shop-overlay')
+    .evaluate((el) => el.classList.contains('show'));
+  check('Shop-Overlay sichtbar', shopVisible);
+  await page.evaluate(() => window.TammoTest.closeShop());
+
+  // Waffe kaufen erhöht Stufe und Angriff; Viewmodel zeigt die Waffe.
+  const weapon = await page.evaluate(() => {
+    window.TammoTest.reset(12345, 'kaempfer');
+    window.TammoTest.grantResources('rune', 20);
+    const before = window.TammoTest.getEquipment();
+    const r = window.TammoTest.buyWeapon();
+    const after = window.TammoTest.getEquipment();
+    window.TammoTest.frame();
+    const hasSvg = !!document.querySelector('#weapon svg');
+    return { ok: r.ok, tierUp: after.weaponTier === before.weaponTier + 1, atkUp: after.attackPower > before.attackPower, hasSvg };
+  });
+  check('Waffe kaufen erhöht Waffenstufe', weapon.ok && weapon.tierUp);
+  check('Angriff steigt mit der Waffe', weapon.atkUp);
+  check('Waffe wird unten angezeigt (Viewmodel)', weapon.hasSvg);
+
+  // Rüstung kaufen erhöht Rüstungsstufe.
+  const armor = await page.evaluate(() => {
+    const before = window.TammoTest.getEquipment().armorTier;
+    const r = window.TammoTest.buyArmor();
+    return { ok: r.ok, after: window.TammoTest.getEquipment().armorTier, before };
+  });
+  check('Rüstung kaufen erhöht Rüstungsstufe', armor.ok && armor.after === armor.before + 1);
+
+  // Ton an/aus umschaltbar (ohne Fehler).
+  const mute = await page.evaluate(() => {
+    const m1 = window.TammoTest.toggleMute();
+    const m2 = window.TammoTest.toggleMute();
+    return { m1, m2 };
+  });
+  check('Ton lässt sich stummschalten und wieder aktivieren', mute.m1 === true && mute.m2 === false);
+
   await page.close();
 }
 

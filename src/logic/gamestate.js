@@ -14,8 +14,13 @@ import { Inventory } from './inventory.js';
 import { playerAttack } from './combat.js';
 import {
   RESOURCES,
+  RESOURCE_IDS,
   RESOURCES_PER_LEVEL,
   MAX_LEVEL,
+  MAX_TIER,
+  WEAPON_COST,
+  ARMOR_COST,
+  WEAPONS,
   getClass,
   canPickLocks,
   hasMagicLight,
@@ -84,6 +89,8 @@ export class GameState {
     this.inventory = new Inventory();
     this.defeatedCount = 0; // für Aufträge
     this.pickupCount = 0;
+    this.chestsOpenedCount = 0;
+    this.visited = new Set();
     this.quest = null;
 
     this.mode = 'classselect'; // 'classselect' | 'explore' | 'combat' | 'gameover' | 'win'
@@ -96,6 +103,7 @@ export class GameState {
     const c = getClass(classId);
     this.player = new Player(c.id, this.startCell.x + 0.5, this.startCell.y + 0.5, this.startAngle);
     this.mode = 'explore';
+    this.visited = new Set([this.currentViertel()]);
     this.log(`${c.name} gewählt. Sammle ${RESOURCES[c.resource].name} und bring sie zum Händler!`);
     return c;
   }
@@ -112,11 +120,18 @@ export class GameState {
   // --- Bewegung -----------------------------------------------------------
   moveForward(sign = 1) {
     if (this.mode !== 'explore') return false;
-    return moveRelative(this.grid, this.player, this.opts.moveSpeed * sign, 0);
+    const moved = moveRelative(this.grid, this.player, this.opts.moveSpeed * sign, 0);
+    if (moved) this.markVisited();
+    return moved;
   }
   strafe(sign = 1) {
     if (this.mode !== 'explore') return false;
-    return moveRelative(this.grid, this.player, 0, this.opts.moveSpeed * sign);
+    const moved = moveRelative(this.grid, this.player, 0, this.opts.moveSpeed * sign);
+    if (moved) this.markVisited();
+    return moved;
+  }
+  markVisited() {
+    if (this.visited) this.visited.add(this.currentViertel());
   }
   turn(sign = 1) {
     rotate(this.player, this.opts.turnSpeed * sign);
@@ -199,7 +214,7 @@ export class GameState {
   interact() {
     if (this.mode !== 'explore') return { type: 'none' };
 
-    if (this.distToHaendler() <= this.opts.talkRange) return this.tradeAndHandIn();
+    if (this.distToHaendler() <= this.opts.talkRange) return { type: 'shop' };
     if (this.distToBewohner() <= this.opts.talkRange) return this.talkBewohner();
 
     const chest = this.nearestChest();
@@ -254,9 +269,52 @@ export class GameState {
     }
     this._consumeLock();
     chest.opened = true;
+    this.chestsOpenedCount += 1;
     this.inventory.add(chest.loot.resId, chest.loot.amount);
     this.log(`Truhe geöffnet: +${chest.loot.amount} ${RESOURCES[chest.loot.resId].name}!`);
     return { type: 'chest', opened: true, loot: chest.loot };
+  }
+
+  // --- Ausrüstung kaufen (Händler-Shop) ----------------------------------
+  // Kosten werden aus dem Rohstoff-Vorrat bezahlt (Gilden-Rohstoff zuletzt,
+  // damit das Aufsteigen nicht blockiert wird).
+  _spendResources(n) {
+    if (this.inventory.total() < n) return false;
+    let left = n;
+    const order = RESOURCE_IDS.slice().sort(
+      (a, b) => (a === this.player.resource ? 1 : 0) - (b === this.player.resource ? 1 : 0)
+    );
+    for (const id of order) {
+      while (left > 0 && this.inventory.count(id) > 0) {
+        this.inventory.remove(id, 1);
+        left -= 1;
+      }
+    }
+    return left === 0;
+  }
+
+  weaponCost() {
+    return this.player.weaponTier < MAX_TIER ? WEAPON_COST[this.player.weaponTier] : null;
+  }
+  armorCost() {
+    return this.player.armorTier < MAX_TIER ? ARMOR_COST[this.player.armorTier] : null;
+  }
+
+  buyWeapon() {
+    const cost = this.weaponCost();
+    if (cost == null) return { type: 'weapon', ok: false, reason: 'max' };
+    if (!this._spendResources(cost)) return { type: 'weapon', ok: false, reason: 'cost', cost };
+    this.player.weaponTier += 1;
+    this.log(`Waffe verbessert – Stufe ${this.player.weaponTier}!`);
+    return { type: 'weapon', ok: true, tier: this.player.weaponTier };
+  }
+  buyArmor() {
+    const cost = this.armorCost();
+    if (cost == null) return { type: 'armor', ok: false, reason: 'max' };
+    if (!this._spendResources(cost)) return { type: 'armor', ok: false, reason: 'cost', cost };
+    this.player.armorTier += 1;
+    this.log(`Rüstung verbessert – Stufe ${this.player.armorTier}!`);
+    return { type: 'armor', ok: true, tier: this.player.armorTier };
   }
 
   // --- Aufträge (Bewohner) ------------------------------------------------
@@ -278,16 +336,41 @@ export class GameState {
   }
 
   _makeQuest() {
-    if (this.rng.chance(0.5)) {
-      return { type: 'defeat', target: 2, base: this.defeatedCount, reward: 2 };
-    }
-    return { type: 'collect', target: 4, base: this.pickupCount, reward: 2 };
+    const kinds = [
+      { type: 'defeat', target: 2, base: this.defeatedCount, reward: 2 },
+      { type: 'collect', target: 4, base: this.pickupCount, reward: 2 },
+      { type: 'chests', target: 1, base: this.chestsOpenedCount, reward: 2 },
+      { type: 'visit', target: 4, base: 0, reward: 3 }, // alle vier Viertel besuchen
+    ];
+    return kinds[this.rng.int(0, kinds.length - 1)];
   }
   _questProgress(q) {
-    return q.type === 'defeat' ? this.defeatedCount - q.base : this.pickupCount - q.base;
+    switch (q.type) {
+      case 'defeat':
+        return this.defeatedCount - q.base;
+      case 'collect':
+        return this.pickupCount - q.base;
+      case 'chests':
+        return this.chestsOpenedCount - q.base;
+      case 'visit':
+        return this.visited.size;
+      default:
+        return 0;
+    }
   }
   _questText(q) {
-    return q.type === 'defeat' ? `Besiege ${q.target} Kobolde` : `Sammle ${q.target} Rohstoffe`;
+    switch (q.type) {
+      case 'defeat':
+        return `Besiege ${q.target} Kobolde`;
+      case 'collect':
+        return `Sammle ${q.target} Rohstoffe`;
+      case 'chests':
+        return `Öffne ${q.target} Truhe`;
+      case 'visit':
+        return `Besuche alle ${q.target} Viertel`;
+      default:
+        return 'Auftrag';
+    }
   }
   _questInfo() {
     if (!this.quest) return null;
@@ -410,6 +493,16 @@ export class GameState {
       },
       guild: { have: this.inventory.count(gid), need: RESOURCES_PER_LEVEL, resource: gid },
       resources: this.inventory.list(),
+      totalResources: this.inventory.total(),
+      equip: {
+        weaponTier: p.weaponTier,
+        armorTier: p.armorTier,
+        weapon: WEAPONS[p.classId],
+        maxTier: MAX_TIER,
+        weaponCost: this.weaponCost(),
+        armorCost: this.armorCost(),
+        attackPower: p.attackPower(),
+      },
       keys: this.inventory.keys,
       quest: this._questInfo(),
       light: this.lightLevel(),

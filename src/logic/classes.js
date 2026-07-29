@@ -66,6 +66,19 @@ export const CLASSES = [
 export const MAX_LEVEL = 5; // Meister-Stufe
 export const RESOURCES_PER_LEVEL = 5; // 5 gildeneigene Rohstoffe pro Aufstieg
 
+// Ausrüstung: Waffe (mehr Schaden) und Rüstung (weniger Schaden), je bis Stufe 3.
+export const MAX_TIER = 3;
+export const WEAPON_COST = [3, 5, 8]; // Rohstoffe für Stufe 0->1, 1->2, 2->3
+export const ARMOR_COST = [3, 5, 8];
+
+// Waffen-Sprite (Blickfeld) je Klasse.
+export const WEAPONS = {
+  kaempfer: 'weapon_kaempfer',
+  magier: 'weapon_magier',
+  schurke: 'weapon_schurke',
+  heiler: 'weapon_heiler',
+};
+
 export function getClass(id) {
   return CLASSES.find((c) => c.id === id) || CLASSES[0];
 }

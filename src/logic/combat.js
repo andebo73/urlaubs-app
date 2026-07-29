@@ -3,7 +3,7 @@
 // Reine Logik: nutzt Rng, kein DOM.
 
 export function playerAttack(rng, player, enemy) {
-  const damage = player.strength + rng.int(0, 3);
+  const damage = player.attackPower() + rng.int(0, 3);
   enemy.hp = Math.max(0, enemy.hp - damage);
 
   const result = {
@@ -19,8 +19,8 @@ export function playerAttack(rng, player, enemy) {
     return result;
   }
 
-  // Gegner kontert.
-  const counter = Math.max(1, enemy.strength + rng.int(-1, 1));
+  // Gegner kontert – die Rüstung verringert den Schaden.
+  const counter = Math.max(1, enemy.strength + rng.int(-1, 1) - player.armorTier);
   player.takeDamage(counter);
   result.counterDamage = counter;
   result.playerDefeated = !player.isAlive();

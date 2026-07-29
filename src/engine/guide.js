@@ -52,6 +52,7 @@ export function buildGuideHtml(state) {
       <li>Stufenkarte: <b>${s.guild.have}/${s.guild.need}</b> ${esc(s.class.resourceName)} für die nächste Stufe</li>
       <li>Aktuelles Viertel: <b>${esc(s.viertelName)}</b></li>
       <li>Schlüssel: <b>🔑 ${s.keys}</b>${s.quest ? ` · Auftrag: <b>${esc(s.quest.text)}</b> (${s.quest.progress}/${s.quest.target})` : ''}</li>
+      <li>Ausrüstung: Waffe <b>Stufe ${s.equip.weaponTier}/${s.equip.maxTier}</b> (Angriff ${s.equip.attackPower}) · Rüstung <b>Stufe ${s.equip.armorTier}/${s.equip.maxTier}</b></li>
       <li>Vorrat: ${resRow}</li>
     </ul>
 
@@ -84,7 +85,14 @@ export function buildGuideHtml(state) {
     <h2>Aufträge</h2>
     <ul>
       <li>Der <b>Bewohner</b> (türkis auf der Karte) im Handelsviertel gibt kleine Aufträge.</li>
-      <li>Erledige sie (Kobolde besiegen oder Rohstoffe sammeln) und hol dir <b>Schlüssel</b> als Belohnung.</li>
+      <li>Kobolde besiegen, Rohstoffe sammeln, Truhen öffnen oder alle Viertel besuchen.</li>
+      <li>Belohnung: <b>Schlüssel</b>.</li>
+    </ul>
+
+    <h2>Ausrüstung beim Händler</h2>
+    <ul>
+      <li>Beim <b>Händler</b> öffnet sich der Shop: <b>aufsteigen</b>, <b>Waffe</b> verbessern (mehr Schaden) oder <b>Rüstung</b> verbessern (weniger Schaden).</li>
+      <li>Upgrades kosten Rohstoffe – deine Waffe siehst du unten im Bild.</li>
     </ul>
 
     <h2>Kampf</h2>

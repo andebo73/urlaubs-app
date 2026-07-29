@@ -384,6 +384,55 @@ body {
   }
 }
 
+/* ---------- Waffe (Viewmodel) ---------- */
+.weapon {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: clamp(120px, 26vw, 220px);
+  pointer-events: none;
+  z-index: 2;
+}
+.weapon svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 -2px 6px rgba(0, 0, 0, 0.45));
+}
+.weapon-tier {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 3px;
+}
+.weapon-tier i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+
+/* ---------- Ton-Schalter ---------- */
+.mute-btn {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 5;
+}
+
 /* ---------- Overlays ---------- */
 .overlay {
   position: absolute;
@@ -461,6 +510,48 @@ body {
 }
 .btn:active {
   transform: translateY(1px);
+}
+
+/* ---------- Händler-Shop ---------- */
+.shop-box {
+  position: relative;
+  width: min(460px, 94vw);
+  padding: 22px;
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  text-align: center;
+}
+.shop-box h1 {
+  margin: 0 0 10px;
+  font-size: 22px;
+  color: var(--accent);
+}
+.shop-info {
+  text-align: left;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+.shop-info b {
+  color: var(--text);
+}
+.shop-info .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.shop-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.shop-actions .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* ---------- Spielanleitung ---------- */

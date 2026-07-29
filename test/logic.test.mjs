@@ -7,8 +7,9 @@ import { generateMaze, isFullyConnected } from '../src/logic/maze.js';
 import { Player } from '../src/logic/player.js';
 import { Inventory } from '../src/logic/inventory.js';
 import { GameState } from '../src/logic/gamestate.js';
+import { playerAttack } from '../src/logic/combat.js';
 import { viertelAt, paintWalls, VIERTEL } from '../src/logic/viertel.js';
-import { MAX_LEVEL, RESOURCES_PER_LEVEL, getClass } from '../src/logic/classes.js';
+import { MAX_LEVEL, RESOURCES_PER_LEVEL, MAX_TIER, getClass } from '../src/logic/classes.js';
 
 test('Rng ist deterministisch für gleichen Seed', () => {
   const a = new Rng(42);
@@ -206,4 +207,66 @@ test('Katakomben sind dunkel – außer für den Magier', () => {
   m.player.x = 1.5;
   m.player.y = m.grid.height - 1.5;
   assert.equal(m.lightLevel(), 1);
+});
+
+// --- Stufe 3 ---------------------------------------------------------------
+
+test('Waffe kaufen erhöht Angriff und kostet Rohstoffe', () => {
+  const gs = new GameState(1);
+  gs.chooseClass('kaempfer');
+  gs.inventory.add('rune', 20);
+  const before = gs.player.attackPower();
+  const total = gs.inventory.total();
+  const r = gs.buyWeapon();
+  assert.equal(r.ok, true);
+  assert.equal(gs.player.weaponTier, 1);
+  assert.equal(gs.player.attackPower(), before + 2);
+  assert.ok(gs.inventory.total() < total);
+});
+
+test('Waffe/Rüstung sind bei Stufe 3 ausgereizt', () => {
+  const gs = new GameState(1);
+  gs.chooseClass('kaempfer');
+  gs.inventory.add('rune', 100);
+  for (let i = 0; i < 5; i++) {
+    gs.buyWeapon();
+    gs.buyArmor();
+  }
+  assert.equal(gs.player.weaponTier, MAX_TIER);
+  assert.equal(gs.player.armorTier, MAX_TIER);
+  assert.equal(gs.weaponCost(), null);
+  assert.equal(gs.buyWeapon().reason, 'max');
+});
+
+test('Rüstung verringert den Konterschaden', () => {
+  const mk = (armor) => {
+    const gs = new GameState(3);
+    gs.chooseClass('kaempfer');
+    gs.player.armorTier = armor;
+    const enemy = { hp: 999, maxHp: 999, strength: 6, alive: true, drop: 'erz' };
+    const r = playerAttack(new Rng(5), gs.player, enemy);
+    return r.counterDamage;
+  };
+  assert.ok(mk(0) - mk(2) === 2, 'Rüstung 2 sollte 2 Schaden weniger bedeuten');
+});
+
+test('Händler-Interaktion öffnet den Shop (Signal)', () => {
+  const gs = new GameState(5);
+  gs.chooseClass('kaempfer');
+  gs.player.x = gs.haendler.x - 0.4;
+  gs.player.y = gs.haendler.y;
+  assert.equal(gs.interact().type, 'shop');
+});
+
+test('Alle vier Auftragstypen sind erreichbar', () => {
+  const seen = new Set();
+  for (let s = 0; s < 60; s++) {
+    const gs = new GameState(s);
+    gs.chooseClass('kaempfer');
+    gs.talkBewohner();
+    seen.add(gs.quest.type);
+  }
+  for (const t of ['defeat', 'collect', 'chests', 'visit']) {
+    assert.ok(seen.has(t), `Auftragstyp ${t} fehlt`);
+  }
 });

@@ -21,6 +21,15 @@ export class Player {
     this.strength = c.strength;
     this.maxHp = c.maxHp;
     this.hp = c.maxHp;
+
+    // Ausrüstung (Stufe 0..3).
+    this.weaponTier = 0;
+    this.armorTier = 0;
+  }
+
+  // Angriffskraft inkl. Waffenbonus.
+  attackPower() {
+    return this.strength + this.weaponTier * 2;
   }
 
   isAlive() {
