@@ -96,24 +96,48 @@ async function runCodeGarten(browser, baseUrl) {
   });
   check('Rasen-Szene rendert (nicht einfarbig)', notBlank);
 
-  // Laufen: vorwärts bewegt den Avatar; Drehen ändert die Blickrichtung.
+  // Laufen: bewegt den Avatar; Drehen ändert die Blickrichtung.
   const walk = await page.evaluate(() => {
     window.CodeGartenTest.reset();
     const before = window.CodeGartenTest.getPlayer();
     const after = window.CodeGartenTest.tick({ move: 1 }, 0.1, 15);
     const turned = window.CodeGartenTest.tick({ turn: 1 }, 0.1, 5);
-    return { before, after, turned };
+    return {
+      dist: Math.hypot(after.x - before.x, after.z - before.z),
+      yawBefore: before.yaw,
+      yawAfter: turned.yaw,
+    };
   });
-  check('Avatar läuft (Position ändert sich)', walk.after.z > walk.before.z);
-  check('Umsehen dreht den Avatar', walk.turned.yaw !== walk.before.yaw);
+  check('Avatar läuft (Position ändert sich)', walk.dist > 1);
+  check('Umsehen dreht den Avatar', walk.yawAfter !== walk.yawBefore);
 
-  // Avatar bleibt im Feld (Grenzen).
-  const bounded = await page.evaluate(() => {
-    window.CodeGartenTest.reset();
-    const p = window.CodeGartenTest.tick({ move: 1 }, 0.2, 400);
-    return Math.abs(p.x) <= 24 && Math.abs(p.z) <= 24;
+  // Springen: hebt ab und landet wieder auf der Plattform.
+  const jump = await page.evaluate(() => {
+    window.CodeGartenTest.reset(); // Spawn steht geerdet am Ring
+    window.CodeGartenTest.tick({ jump: true }, 0.05, 1);
+    let maxY = 0;
+    for (let i = 0; i < 40; i++) {
+      const p = window.CodeGartenTest.tick({}, 0.05, 1);
+      maxY = Math.max(maxY, p.y);
+    }
+    return { maxY, grounded: window.CodeGartenTest.getPlayer().grounded };
   });
-  check('Avatar bleibt im Feld', bounded);
+  check('Springen hebt den Avatar an', jump.maxY > 2);
+  check('nach dem Sprung wieder gelandet', jump.grounded === true);
+
+  // Von der Plattform fallen -> Respawn am Brunnen.
+  const fall = await page.evaluate(() => {
+    window.CodeGartenTest.reset();
+    const before = window.CodeGartenTest.getPlayer().respawnCount;
+    window.CodeGartenTest.place(30, 0, 0); // außerhalb der Plattform
+    let respawned = false;
+    for (let i = 0; i < 150; i++) {
+      const p = window.CodeGartenTest.tick({}, 0.05, 1);
+      if (p.respawnCount > before) { respawned = true; break; }
+    }
+    return { respawned, onPlatform: window.CodeGartenTest.getPlayer().onPlatform };
+  });
+  check('Fallen von der Plattform löst Respawn aus', fall.respawned && fall.onPlatform);
 
   // Seiten-Knopf öffnet das Eingabefeld.
   await page.evaluate(() => window.CodeGartenTest.reset());

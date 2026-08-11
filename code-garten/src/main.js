@@ -26,6 +26,8 @@ class Game {
     this.keys = new Set();
     this.joy = { active: false, x: 0, y: 0, id: null };
     this.look = { id: null, lastX: 0 };
+    this._jump = false;        // Sprung angefordert (wird pro Frame verbraucht)
+    this._lastRespawn = 0;     // zuletzt gesehener Respawn-Zähler
   }
 
   init() {
@@ -61,10 +63,21 @@ class Game {
     window.addEventListener('keydown', (e) => {
       if (this._typing()) return;
       this.keys.add(e.code);
+      if (e.code === 'Space') this._jump = true;
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     window.addEventListener('blur', () => this.keys.clear());
+
+    // Sprung-Knopf.
+    const jumpBtn = document.getElementById('jump-btn');
+    if (jumpBtn) {
+      jumpBtn.addEventListener('pointerdown', (e) => {
+        this._jump = true;
+        this._hideHint();
+        e.stopPropagation();
+      });
+    }
 
     // Umsehen: über das Canvas ziehen (Maus oder Finger).
     this.canvas.addEventListener('pointerdown', (e) => {
@@ -161,10 +174,13 @@ class Game {
       move += -this.joy.y;
       strafe += this.joy.x;
     }
+    const jump = this._jump;
+    this._jump = false;
     return {
       move: Math.max(-1, Math.min(1, move)),
       strafe: Math.max(-1, Math.min(1, strafe)),
       turn: Math.max(-1, Math.min(1, turn)),
+      jump,
     };
   }
 
@@ -365,6 +381,10 @@ class Game {
     const dt = Math.min(0.05, Math.max(0, (now - this._last) / 1000));
     this._last = now;
     this.world.update(dt, this.readControls());
+    if (this.world.respawnCount !== this._lastRespawn) {
+      this._lastRespawn = this.world.respawnCount;
+      this.toast('💦 Zurück am Brunnen!', '#3aa6e0');
+    }
     this._syncAvatar();
     drawWorld(this.ctx, this.cssW, this.cssH, this.world, this.state.list(), now / 1000);
     requestAnimationFrame((n) => this.loop(n));
@@ -397,6 +417,7 @@ window.CodeGartenTest = {
   reset() {
     game.state.reset();
     game.world.reset();
+    game._lastRespawn = 0;
     game.renderInventory();
     game.updateStats();
     const res = document.getElementById('code-result');
@@ -427,6 +448,15 @@ window.CodeGartenTest = {
   // Bewegung deterministisch simulieren (für Tests).
   tick(controls = {}, dt = 0.1, steps = 1) {
     for (let i = 0; i < steps; i++) game.world.update(dt, controls);
+    return game.world.snapshot();
+  },
+  // Avatar für Tests an eine Position setzen.
+  place(x, z, y = 0) {
+    game.world.x = x;
+    game.world.z = z;
+    game.world.y = y;
+    game.world.vy = 0;
+    game.world.grounded = false;
     return game.world.snapshot();
   },
   turn(delta) {

@@ -4,7 +4,7 @@
 // Billboards. Kein WebGL, keine externen Assets.
 
 import { palette as P } from '../assets/palette.js';
-import { FIELD, TREES, BUSHES, FLOWERS } from '../logic/world.js';
+import { FIELD, TREES, BUSHES, FLOWERS, FOUNTAIN, RESPAWN_POINTS } from '../logic/world.js';
 
 const FOV = 1.02;      // Blickwinkel (Bogenmaß)
 const NEAR = 0.06;     // Nah-Ebene für das Clipping
@@ -83,6 +83,8 @@ export function drawWorld(ctx, W, H, world, items, t) {
   drawGround(ctx, pj, cam);
 
   const draws = [];
+  addRespawnPads(draws, pj);
+  addFountain(draws, pj, t);
   addDecorations(draws, pj);
   addItems(draws, pj, items, t);
   addAvatar(draws, pj, world, t);
@@ -108,8 +110,12 @@ function drawBackground(ctx, W, H, pj, cam) {
   ctx.fillRect(0, horizon - 1, W, H - horizon + 1);
 }
 
-// Rasen als quer verlaufende, gemähte Streifen (perspektivisch).
+// Rasen als quer verlaufende, gemähte Streifen (perspektivisch), plus die
+// Seitenwände der schwebenden Plattform (Erde), damit man sieht, dass man
+// herunterfallen kann.
 function drawGround(ctx, pj, cam) {
+  drawPlatformSides(ctx, pj);
+
   const step = 2;
   const bands = [];
   for (let z = -FIELD; z < FIELD; z += step) bands.push(z);
@@ -127,35 +133,110 @@ function drawGround(ctx, pj, cam) {
     ];
     fillViewPoly(ctx, pj, verts, style);
   }
-  drawFence(ctx, pj);
 }
 
 function distToCam(cam, z) {
   return Math.abs(z - cam.z);
 }
 
-// Niedrige Umzäunung als Feldbegrenzung (vier flache Wände + Eckpfosten).
-function drawFence(ctx, pj) {
-  const h = 1.2;
-  const walls = [
-    { a: [-FIELD, FIELD], b: [FIELD, FIELD] },
-    { a: [FIELD, FIELD], b: [FIELD, -FIELD] },
-    { a: [FIELD, -FIELD], b: [-FIELD, -FIELD] },
-    { a: [-FIELD, -FIELD], b: [-FIELD, FIELD] },
-  ];
+// Seitenwände + Unterseite der Plattform (Erdblock unter dem Rasen).
+function drawPlatformSides(ctx, pj) {
+  const D = 6; // Dicke der Plattform nach unten
+  const F = FIELD;
   const faces = [];
-  for (const w of walls) {
-    const [x1, z1] = w.a;
-    const [x2, z2] = w.b;
-    faces.push(quad(pj, [x1, 0, z1], [x2, 0, z2], [x2, h, z2], [x1, h, z1], '#b98f52'));
-    faces.push(quad(pj, [x1, h - 0.25, z1], [x2, h - 0.25, z2], [x2, h, z2], [x1, h, z1], '#caa46a'));
+  const sides = [
+    [[-F, F], [F, F]],
+    [[F, F], [F, -F]],
+    [[F, -F], [-F, -F]],
+    [[-F, -F], [-F, F]],
+  ];
+  for (const [[x1, z1], [x2, z2]] of sides) {
+    faces.push(quad(pj, [x1, 0, z1], [x2, 0, z2], [x2, -D, z2], [x1, -D, z1], '#6b4a2b'));
+    // schmaler Grasrand oben an der Kante
+    faces.push(quad(pj, [x1, 0, z1], [x2, 0, z2], [x2, -0.5, z2], [x1, -0.5, z1], P.grassEdge));
   }
-  // Eckpfosten als kleine Boxen.
-  for (const [x, z] of [[-FIELD, FIELD], [FIELD, FIELD], [FIELD, -FIELD], [-FIELD, -FIELD]]) {
-    boxFaces(pj, x, 0.8, z, 0.6, 1.6, 0.6, '#8a6a3c').forEach((f) => faces.push(f));
-  }
+  // Unterseite
+  faces.push(quad(pj, [-F, -D, -F], [F, -D, -F], [F, -D, F], [-F, -D, F], '#4a3320'));
   faces.sort((a, b) => b.depth - a.depth);
   for (const f of faces) f.fn(ctx);
+}
+
+// --- Brunnen & Respawn-Punkte ---------------------------------------------
+function addFountain(draws, pj, t) {
+  const { x, z } = FOUNTAIN;
+  // Stein-Becken.
+  cylinderFaces(pj, x, 0, z, FOUNTAIN.r, 0.7, '#c7c2b6', '#9a9488').forEach((f) => draws.push(f));
+  // Wasserfläche (leicht schimmernd).
+  const shimmer = 0.5 + 0.5 * Math.sin(t * 1.5);
+  const water = tint('#3aa6e0', 0.9 + shimmer * 0.15);
+  draws.push(discFace(pj, x, 0.74, z, FOUNTAIN.r - 0.5, water));
+  // Mittelsäule + oberes Becken.
+  cylinderFaces(pj, x, 0.7, z, 0.5, 1.3, '#c7c2b6', '#9a9488').forEach((f) => draws.push(f));
+  cylinderFaces(pj, x, 2.0, z, 0.95, 0.28, '#c7c2b6', '#9a9488').forEach((f) => draws.push(f));
+  draws.push(discFace(pj, x, 2.3, z, 0.7, water));
+  // kleiner Wasserstrahl (dünne Säule).
+  cylinderFaces(pj, x, 2.3, z, 0.14, 0.7 + shimmer * 0.3, '#bfe6fb', '#8fd0f2', 8).forEach((f) => draws.push(f));
+}
+
+function addRespawnPads(draws, pj) {
+  for (const p of RESPAWN_POINTS) {
+    const v = pj.toView(p.x, 0.03, p.z);
+    if (v.z <= NEAR) continue;
+    const s = pj.toScreen(v);
+    const sc = pj.focal / v.z;
+    draws.push({
+      depth: v.z + 100, // immer flach auf dem Boden (hinter allem anderen)
+      fn: (ctx) => {
+        ctx.save();
+        ctx.globalAlpha = 0.5;
+        ctx.strokeStyle = '#ffd23f';
+        ctx.lineWidth = Math.max(2, 0.14 * sc);
+        ctx.beginPath();
+        ctx.ellipse(s.x, s.y, 1.1 * sc, 0.5 * sc, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 0.16;
+        ctx.fillStyle = '#ffd23f';
+        ctx.fill();
+        ctx.restore();
+      },
+    });
+  }
+}
+
+// Zylinder (Seitenflächen + Deckel) als Liste von Flächen-Drawables.
+function cylinderFaces(pj, cx, cyBottom, cz, r, h, colTop, colSide, seg = 14) {
+  const bottom = [];
+  const top = [];
+  for (let i = 0; i < seg; i++) {
+    const a = (i / seg) * Math.PI * 2;
+    const px = cx + Math.cos(a) * r;
+    const pz = cz + Math.sin(a) * r;
+    bottom.push(pj.toView(px, cyBottom, pz));
+    top.push(pj.toView(px, cyBottom + h, pz));
+  }
+  const faces = [];
+  for (let i = 0; i < seg; i++) {
+    const j = (i + 1) % seg;
+    const a = ((i + 0.5) / seg) * Math.PI * 2;
+    const shade = faceShade(Math.cos(a), 0, Math.sin(a));
+    const verts = [bottom[i], bottom[j], top[j], top[i]];
+    const depth = (verts[0].z + verts[1].z + verts[2].z + verts[3].z) / 4;
+    faces.push({ depth, fn: (ctx) => fillViewPoly(ctx, pj, verts, tint(colSide, shade)) });
+  }
+  const depthTop = top.reduce((s, v) => s + v.z, 0) / seg;
+  faces.push({ depth: depthTop, fn: (ctx) => fillViewPoly(ctx, pj, top, tint(colTop, faceShade(0, 1, 0))) });
+  return faces;
+}
+
+// Flache Kreisscheibe (z. B. Wasserfläche).
+function discFace(pj, cx, cy, cz, r, style, seg = 16) {
+  const verts = [];
+  for (let i = 0; i < seg; i++) {
+    const a = (i / seg) * Math.PI * 2;
+    verts.push(pj.toView(cx + Math.cos(a) * r, cy, cz + Math.sin(a) * r));
+  }
+  const depth = verts.reduce((s, v) => s + v.z, 0) / seg;
+  return { depth, fn: (ctx) => fillViewPoly(ctx, pj, verts, style) };
 }
 
 function quad(pj, p1, p2, p3, p4, style) {
@@ -231,23 +312,29 @@ function addAvatar(draws, pj, world, t) {
   const f = world.forward();
   const r = world.right();
   const bx = world.x, bz = world.z;
-  const swing = world.moving ? Math.sin(world.walkPhase) * 0.6 : Math.sin(t * 2) * 0.04;
+  const by = world.y || 0; // Höhe (Springen/Fallen)
+  // In der Luft die Beine leicht anwinkeln, am Boden laufen.
+  const swing = !world.grounded
+    ? 0.5
+    : world.moving
+    ? Math.sin(world.walkPhase) * 0.6
+    : Math.sin(t * 2) * 0.04;
 
   const push = (faces) => faces.forEach((fc) => draws.push(fc));
 
-  // Beine (schwingen gegenläufig, Drehpunkt an der Hüfte y=2).
-  push(boxFaces(pj, off(bx, r, -0.32), 1, off(bz, r, -0.32, true), 0.55, 2, 0.6, P.pants, { f, r, swing, pivotY: 2 }));
-  push(boxFaces(pj, off(bx, r, 0.32), 1, off(bz, r, 0.32, true), 0.55, 2, 0.6, P.pants, { f, r, swing: -swing, pivotY: 2 }));
+  // Beine (schwingen gegenläufig, Drehpunkt an der Hüfte).
+  push(boxFaces(pj, off(bx, r, -0.32), by + 1, off(bz, r, -0.32, true), 0.55, 2, 0.6, P.pants, { f, r, swing, pivotY: by + 2 }));
+  push(boxFaces(pj, off(bx, r, 0.32), by + 1, off(bz, r, 0.32, true), 0.55, 2, 0.6, P.pants, { f, r, swing: -swing, pivotY: by + 2 }));
 
   // Torso.
-  push(boxFaces(pj, bx, 3.05, bz, 1.5, 2.1, 0.85, P.shirt, { f, r }));
+  push(boxFaces(pj, bx, by + 3.05, bz, 1.5, 2.1, 0.85, P.shirt, { f, r }));
 
-  // Arme (Drehpunkt an der Schulter y=4).
-  push(boxFaces(pj, off(bx, r, -1.02), 3.05, off(bz, r, -1.02, true), 0.5, 2, 0.55, P.skin, { f, r, swing: -swing, pivotY: 4 }));
-  push(boxFaces(pj, off(bx, r, 1.02), 3.05, off(bz, r, 1.02, true), 0.5, 2, 0.55, P.skin, { f, r, swing, pivotY: 4 }));
+  // Arme (Drehpunkt an der Schulter).
+  push(boxFaces(pj, off(bx, r, -1.02), by + 3.05, off(bz, r, -1.02, true), 0.5, 2, 0.55, P.skin, { f, r, swing: -swing, pivotY: by + 4 }));
+  push(boxFaces(pj, off(bx, r, 1.02), by + 3.05, off(bz, r, 1.02, true), 0.5, 2, 0.55, P.skin, { f, r, swing, pivotY: by + 4 }));
 
   // Kopf.
-  const headY = 4.7;
+  const headY = by + 4.7;
   push(boxFaces(pj, bx, headY, bz, 1.15, 1.1, 1.1, P.skin, { f, r }));
 
   // Gesicht (zwei Augen + Mund) auf die Vorderseite als kleine Billboards.
@@ -277,7 +364,7 @@ function addAvatar(draws, pj, world, t) {
   if (world.pet) {
     const px = bx - r.x * 1.7 + f.x * 0.3;
     const pz = bz - r.z * 1.7 + f.z * 0.3;
-    emojiBillboard(draws, pj, px, 0.8 + Math.sin(t * 2.5) * 0.1, pz, world.pet, 1.7);
+    emojiBillboard(draws, pj, px, by + 0.8 + Math.sin(t * 2.5) * 0.1, pz, world.pet, 1.7);
   }
 }
 

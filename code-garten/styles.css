@@ -172,6 +172,40 @@ button.pill.ghost:hover {
   pointer-events: none;
 }
 
+/* ---------- Sprung-Knopf ---------- */
+.jump-btn {
+  position: absolute;
+  right: calc(20px + env(safe-area-inset-right));
+  bottom: calc(30px + env(safe-area-inset-bottom));
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: radial-gradient(circle at 50% 35%, #6bc157, #3f8a36);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: none;
+  z-index: 15;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+.jump-btn:active {
+  transform: scale(0.94);
+  filter: brightness(1.1);
+}
+.jump-arrow {
+  font-size: 28px;
+  line-height: 1;
+}
+.jump-label {
+  font-size: 12px;
+}
+
 /* ---------- Steuer-Hinweis ---------- */
 .hint {
   position: absolute;

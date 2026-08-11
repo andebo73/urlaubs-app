@@ -37,8 +37,13 @@
       <!-- Lauf-Steuerung (Joystick, links unten) -->
       <div id="joystick" class="joystick"><div id="joystick-knob" class="joystick-knob"></div></div>
 
+      <!-- Springen (rechts unten) -->
+      <button id="jump-btn" class="jump-btn" type="button" aria-label="Springen">
+        <span class="jump-arrow">⤒</span><span class="jump-label">Springen</span>
+      </button>
+
       <!-- Steuer-Hinweis -->
-      <div id="hint" class="hint">Bewegen: Joystick / WASD · Umsehen: über die Wiese ziehen</div>
+      <div id="hint" class="hint">Bewegen: Joystick / WASD · Springen: Leertaste / Knopf · Umsehen: ziehen</div>
 
       <!-- Belohnungs-Hinweis -->
       <div id="toast" class="toast"></div>
@@ -89,8 +94,10 @@
             <h1>🌱 Code-Garten</h1>
             <p>
               Lauf über die Rasen-Map und sammle Items. Bewege dich mit dem
-              <b>Joystick</b> (unten links) oder <b>WASD</b>/Pfeiltasten; zum
-              Umsehen einfach über die Wiese <b>ziehen</b>.
+              <b>Joystick</b> (unten links) oder <b>WASD</b>/Pfeiltasten,
+              <b>springe</b> mit der Leertaste oder dem Sprung-Knopf; zum
+              Umsehen einfach über die Wiese <b>ziehen</b>. Fällst du von der
+              Plattform, tauchst du am <b>Brunnen</b> in der Mitte wieder auf.
             </p>
             <p>
               Tippe rechts am Rand auf <b>„Code einlösen“</b>, gib einen Code ein
