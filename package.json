@@ -6,7 +6,7 @@
   "description": "Tammo Stadt – ein 3D-Labyrinth-Abenteuer (Standalone-HTML, ohne Build-Schritt).",
   "scripts": {
     "serve": "python3 -m http.server 8000",
-    "test:logic": "node --test test/logic.test.mjs",
+    "test:logic": "node --test test/logic.test.mjs test/code-garten.test.mjs",
     "test:e2e": "node test/run.mjs"
   },
   "devDependencies": {

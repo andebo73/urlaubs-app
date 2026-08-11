@@ -14,6 +14,12 @@ Fonts oder Sounds. Damit ist alles lizenzfrei und überall hostbar.
   Klasse wählen, Rohstoffe sammeln, Kobolde bekämpfen, Türen/Truhen öffnen und
   beim Händler zur Meister-Stufe aufsteigen. Details siehe
   [`tammo-stadt/`](./tammo-stadt/).
+- **[Code-Garten](./code-garten/)** – ein Code-Einlöse-Spiel auf einer
+  Rasen-Wiese. Über den Knopf am Bildschirmrand erscheint ein Eingabefeld; gibt
+  man einen Code ein, bekommt man ein Item geschenkt, das auf der Wiese und im
+  Inventar auftaucht (seltenere Items sind wertvoller, manche trägt der Avatar).
+  Ein paar Beispielcodes sind enthalten. **Konzept-Demo** ohne Login/echte
+  Käufe – als Prototyp für ein später in Roblox integriertes Code-System.
 - *(weitere Apps folgen als eigene Unterordner)*
 
 ## Lokal starten
@@ -57,6 +63,14 @@ tammo-stadt/               App „Tammo Stadt"
     logic/                 reine Spiellogik (ohne DOM, testbar)
     engine/                Rendering (Raycasting, Sprites, Minikarte, HUD, Sound)
     assets/                selbst geschriebene SVGs + Farbpalette
+code-garten/              App „Code-Garten"
+  index.html               Einstieg (Canvas + Seiten-Knopf + Overlays)
+  styles.css               Layout/UI (nur System-Fonts)
+  src/
+    main.js                Bootstrap + Test-API (window.CodeGartenTest)
+    logic/                 Codes, Items, Spielzustand (ohne DOM, testbar)
+    engine/                Rendering (Rasen-Map, Avatar, Item-Marker)
+    assets/                Farbpalette
 test/                      Logik-Tests + Playwright-Harness
 .github/workflows/pages.yml  Deploy auf GitHub Pages
 ```

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Code-Garten</title>
+    <!-- Selbst gezeichnetes SVG-Favicon (lizenzfrei, keine externe Datei). -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a441f'/%3E%3Cpath d='M16 27V15' stroke='%23f6c453' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M16 16c-4 0-7-3-7-7 4 0 7 3 7 7zM16 14c0-4 3-6 7-6 0 4-3 6-7 6z' fill='%237bb661'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Rasen-Map + Avatar + Items -->
+      <canvas id="scene"></canvas>
+
+      <!-- Kopfzeile -->
+      <header id="topbar">
+        <div class="brand"><span class="brand-mark">🌱</span> Code-Garten</div>
+        <div class="top-stats">
+          <span class="pill">🎁 <b id="stat-total">0</b> Items</span>
+          <button id="info-btn" class="pill ghost" type="button">ⓘ Info</button>
+        </div>
+      </header>
+
+      <!-- Seiten-Knopf: öffnet das Eingabefeld -->
+      <button id="code-open" class="side-tab" type="button" aria-label="Code einlösen">
+        <span class="side-tab-emoji">🎁</span>
+        <span class="side-tab-label">Code<br />einlösen</span>
+      </button>
+
+      <!-- Inventar-Leiste unten -->
+      <div id="inv-bar" class="inv-bar"></div>
+
+      <!-- Belohnungs-Hinweis -->
+      <div id="toast" class="toast"></div>
+
+      <!-- Einlöse-Fenster -->
+      <div id="code-overlay" class="overlay">
+        <div class="panel code-panel">
+          <button class="panel-close" id="code-close" type="button" aria-label="Schließen">✕</button>
+          <h1>🎁 Code einlösen</h1>
+          <p class="panel-sub">Gib einen Code ein und hol dir dein Item auf die Wiese.</p>
+          <form id="code-form" class="code-form" autocomplete="off">
+            <input
+              id="code-input"
+              type="text"
+              inputmode="text"
+              autocomplete="off"
+              autocapitalize="characters"
+              autocorrect="off"
+              spellcheck="false"
+              placeholder="z. B. WILLKOMMEN"
+              aria-label="Code"
+            />
+            <button id="code-submit" class="btn primary" type="submit">Einlösen</button>
+          </form>
+          <div id="code-result" class="code-result" hidden></div>
+          <div class="examples">
+            <div class="examples-title">Beispielcodes zum Ausprobieren</div>
+            <div id="code-examples" class="chips"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info-Fenster -->
+      <div id="info-overlay" class="overlay">
+        <div class="panel">
+          <button class="panel-close" id="info-close" type="button" aria-label="Schließen">✕</button>
+          <div id="info-content">
+            <h1>🌱 Code-Garten</h1>
+            <p>
+              Löse Codes ein und sammle Items auf deiner Rasen-Wiese. Tippe rechts
+              am Rand auf <b>„Code einlösen“</b>, gib einen Code ein und schon
+              erscheint dein Item.
+            </p>
+            <p>
+              Je seltener das Item, desto wertvoller:
+              <span class="tag" style="--chip:#5bb04a">gewöhnlich</span>
+              <span class="tag" style="--chip:#4f9df6">selten</span>
+              <span class="tag" style="--chip:#a855f7">episch</span>
+              <span class="tag" style="--chip:#f6b400">legendär</span>.
+              Manche Items (z. B. Krone oder Haustier) trägt dein Avatar direkt.
+            </p>
+            <p class="note">
+              Konzept-Demo: Die Items gehören zu diesem Mini-Spiel. Es gibt keinen
+              Login und keine echten Käufe. Später soll das Code-System in ein
+              Roblox-Erlebnis eingebaut werden – dieser Prototyp testet zuerst die
+              Idee.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ladeanzeige -->
+      <div id="loading" class="loading">Lade Code-Garten …</div>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

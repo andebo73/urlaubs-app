@@ -66,11 +66,105 @@ async function runLauncher(browser, rootUrl, gameUrl) {
   check('Launcher lädt', /App/i.test(title));
   const link = await page.locator('a.card[href="./tammo-stadt/"]').count();
   check('Launcher verlinkt Tammo Stadt', link === 1);
+  const link2 = await page.locator('a.card[href="./code-garten/"]').count();
+  check('Launcher verlinkt Code-Garten', link2 === 1);
   // Klick auf die Karte führt zur App.
   await page.click('a.card[href="./tammo-stadt/"]');
   await page.waitForFunction(() => window.TammoTest && window.TammoTest.ready, { timeout: 10000 });
   check('Tammo Stadt startet aus dem Launcher', page.url().includes('/tammo-stadt/'));
   await page.close();
+}
+
+async function runCodeGarten(browser, baseUrl) {
+  console.log('\n== Code-Garten ==');
+  const page = await browser.newPage({ viewport: { width: 1024, height: 700 } });
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+
+  await page.goto(baseUrl);
+  await page.waitForFunction(() => window.CodeGartenTest && window.CodeGartenTest.ready, { timeout: 10000 });
+  check('Code-Garten geladen, CodeGartenTest.ready', true);
+  check('keine Konsolen-/Seitenfehler beim Laden', errors.length === 0);
+  if (errors.length) console.error('    Fehler:', errors.slice(0, 5));
+
+  const notBlank = await page.evaluate(() => {
+    window.CodeGartenTest.frame();
+    return !window.CodeGartenTest.canvasIsBlank();
+  });
+  check('Rasen-Szene rendert (nicht einfarbig)', notBlank);
+
+  // Seiten-Knopf öffnet das Eingabefeld.
+  await page.evaluate(() => window.CodeGartenTest.reset());
+  check('Seiten-Knopf sichtbar', await page.locator('#code-open').isVisible());
+  await page.click('#code-open');
+  const panelShown = await page
+    .locator('#code-overlay')
+    .evaluate((el) => el.classList.contains('show'));
+  check('Eingabefeld erscheint nach Knopfdruck', panelShown);
+
+  // Gültigen Code eingeben und einlösen.
+  await page.fill('#code-input', 'willkommen');
+  await page.click('#code-submit');
+  const redeemed = await page.evaluate(() => ({
+    total: window.CodeGartenTest.totalItems(),
+    has: window.CodeGartenTest.has('stern'),
+    ok: document.getElementById('code-result').classList.contains('ok'),
+  }));
+  check('gültiger Code vergibt ein Item', redeemed.total === 1 && redeemed.has);
+  check('Erfolgsmeldung erscheint', redeemed.ok);
+
+  // Item taucht in der Inventar-Leiste auf.
+  const invCount = await page.locator('#inv-bar .inv-item').count();
+  check('Item erscheint in der Inventar-Leiste', invCount === 1);
+
+  // Unbekannter Code wird abgewiesen (kein neues Item).
+  await page.fill('#code-input', 'quatschcode');
+  await page.click('#code-submit');
+  const bad = await page.evaluate(() => ({
+    total: window.CodeGartenTest.totalItems(),
+    err: document.getElementById('code-result').classList.contains('err'),
+  }));
+  check('unbekannter Code gibt kein Item', bad.total === 1 && bad.err);
+
+  // Derselbe Code lässt sich nicht doppelt einlösen.
+  await page.fill('#code-input', 'WILLKOMMEN');
+  await page.click('#code-submit');
+  const dup = await page.evaluate(() => window.CodeGartenTest.totalItems());
+  check('Code nicht doppelt einlösbar', dup === 1);
+
+  // Beispielcode-Chip vergibt direkt ein Item.
+  const chip = page.locator('#code-examples .chip', { hasText: 'NINJA' });
+  await chip.click();
+  const afterChip = await page.evaluate(() => window.CodeGartenTest.has('schwert'));
+  check('Beispielcode-Chip löst ein Item ein', afterChip);
+
+  await page.close();
+}
+
+async function runCodeGartenMobile(browser, baseUrl) {
+  console.log('\n== Code-Garten (Mobile) ==');
+  const device = devices['Pixel 5'];
+  const context = await browser.newContext({ ...device });
+  const page = await context.newPage();
+  await page.goto(baseUrl);
+  await page.waitForFunction(() => window.CodeGartenTest && window.CodeGartenTest.ready, { timeout: 10000 });
+
+  const noHScroll = await page.evaluate(
+    () => document.documentElement.scrollWidth <= window.innerWidth + 1
+  );
+  check('kein horizontales Scrollen', noHScroll);
+  check('Seiten-Knopf auf dem Handy sichtbar', await page.locator('#code-open').isVisible());
+
+  await page.tap('#code-open');
+  await page.fill('#code-input', 'KRONE');
+  await page.tap('#code-submit');
+  const ok = await page.evaluate(() => window.CodeGartenTest.has('krone'));
+  check('Code auf dem Handy einlösbar', ok);
+
+  await context.close();
 }
 
 async function runDesktop(browser, baseUrl) {
@@ -318,6 +412,7 @@ async function main() {
   const server = await startServer();
   const rootUrl = `http://127.0.0.1:${PORT}/`;
   const gameUrl = `${rootUrl}tammo-stadt/`;
+  const gartenUrl = `${rootUrl}code-garten/`;
   const execPath = process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium';
   const launchOpts = { headless: true };
   if (fs.existsSync(execPath)) launchOpts.executablePath = execPath;
@@ -326,6 +421,8 @@ async function main() {
     await runLauncher(browser, rootUrl, gameUrl);
     await runDesktop(browser, gameUrl);
     await runMobile(browser, gameUrl);
+    await runCodeGarten(browser, gartenUrl);
+    await runCodeGartenMobile(browser, gartenUrl);
   } finally {
     await browser.close();
     server.close();
