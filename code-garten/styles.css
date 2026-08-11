@@ -146,50 +146,94 @@ button.pill.ghost:hover {
   50% { box-shadow: -6px 6px 28px rgba(246, 196, 83, 0.7); }
 }
 
-/* ---------- Inventar-Leiste ---------- */
-.inv-bar {
+/* ---------- Joystick (Bewegen) ---------- */
+.joystick {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  background: linear-gradient(0deg, rgba(0, 0, 0, 0.3), transparent);
+  left: calc(18px + env(safe-area-inset-left));
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.22);
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  touch-action: none;
+  z-index: 15;
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(2px);
 }
-.inv-bar::-webkit-scrollbar {
-  display: none;
+.joystick-knob {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+/* ---------- Steuer-Hinweis ---------- */
+.hint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 14;
+  transition: opacity 0.5s ease;
+}
+.hint.fade {
+  opacity: 0;
+}
+
+/* ---------- Rucksack-Liste ---------- */
+.inv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .inv-empty {
-  color: #fff;
+  color: var(--panel-dim);
   font-size: 14px;
   font-weight: 600;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-  padding: 6px 4px;
+  padding: 8px 2px;
 }
 .inv-item {
-  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 12px 7px 8px;
+  gap: 12px;
+  padding: 10px 14px;
   border-radius: 12px;
-  background: var(--panel);
-  color: var(--panel-text);
+  background: rgba(127, 127, 127, 0.08);
   border: 2px solid var(--chip, #888);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
-  font-weight: 600;
-  font-size: 13px;
-  white-space: nowrap;
+  font-size: 15px;
 }
 .inv-emoji {
-  font-size: 20px;
+  font-size: 26px;
+}
+.inv-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+.inv-rar {
+  font-size: 12px;
+  color: var(--chip, #888);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 .inv-count {
+  margin-left: auto;
   font-weight: 800;
+  font-size: 18px;
   color: var(--chip, #888);
 }
 

@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import { GameState } from '../code-garten/src/logic/gamestate.js';
 import { CODES, EXAMPLE_CODES, normalizeCode, codeItemId } from '../code-garten/src/logic/codes.js';
 import { ITEMS, RARITIES } from '../code-garten/src/logic/items.js';
+import { World, FIELD, TREES } from '../code-garten/src/logic/world.js';
 
 test('normalizeCode ist tolerant (trim, Groß, Leerzeichen)', () => {
   assert.equal(normalizeCode('  woof '), 'WOOF');
@@ -111,4 +112,67 @@ test('snapshot enthält Summe und Item-Liste', () => {
   assert.equal(s.total, 1);
   assert.equal(s.items.length, 1);
   assert.equal(s.lastItemId, 'stern');
+});
+
+// --- Begehbare Welt --------------------------------------------------------
+
+test('Vorwärtsgehen bewegt den Avatar in Blickrichtung', () => {
+  const w = new World();
+  w.yaw = 0; // Blick nach +Z
+  const z0 = w.z;
+  for (let i = 0; i < 10; i++) w.update(0.1, { move: 1 });
+  assert.ok(w.z > z0, 'sollte sich in +Z bewegen');
+  assert.ok(Math.abs(w.x) < 0.01, 'ohne Strafe keine seitliche Bewegung');
+});
+
+test('Rückwärtsgehen kehrt die Richtung um', () => {
+  const w = new World();
+  w.yaw = 0;
+  const z0 = w.z;
+  w.update(0.1, { move: -1 });
+  assert.ok(w.z < z0);
+});
+
+test('Strafe bewegt seitlich', () => {
+  const w = new World();
+  w.yaw = 0;
+  const x0 = w.x;
+  w.update(0.1, { strafe: 1 });
+  assert.ok(w.x > x0, 'Strafe rechts erhöht X');
+});
+
+test('Drehen verändert die Blickrichtung', () => {
+  const w = new World();
+  const y0 = w.yaw;
+  w.update(0.1, { turn: 1 });
+  assert.ok(w.yaw > y0);
+  w.applyTurn(0.5);
+  assert.ok(Math.abs(w.yaw - (y0 + 0.5)) > 0);
+});
+
+test('Avatar bleibt im Feld', () => {
+  const w = new World();
+  w.yaw = 0;
+  for (let i = 0; i < 200; i++) w.update(0.2, { move: 1 });
+  assert.ok(w.z <= FIELD - 1 + 1e-6, 'nicht über die Feldgrenze hinaus');
+});
+
+test('Bäume blockieren (Kollision hält Abstand)', () => {
+  const w = new World();
+  const tree = TREES[0];
+  // Direkt neben den Baum setzen und hineinlaufen.
+  w.x = tree.x - 3;
+  w.z = tree.z;
+  w.yaw = Math.PI / 2; // Blick nach +X (auf den Baum zu)
+  for (let i = 0; i < 40; i++) w.update(0.1, { move: 1 });
+  const d = Math.hypot(w.x - tree.x, w.z - tree.z);
+  assert.ok(d >= 1.1, `Abstand zum Baum zu klein: ${d.toFixed(2)}`);
+});
+
+test('moving-Flag spiegelt Bewegung', () => {
+  const w = new World();
+  w.update(0.1, { move: 1 });
+  assert.equal(w.moving, true);
+  w.update(0.1, {});
+  assert.equal(w.moving, false);
 });

@@ -1,50 +1,171 @@
-// Bootstrap für Code-Garten: verbindet den Spielzustand mit der Rasen-Szene und
-// der DOM-Oberfläche (Seiten-Knopf, Einlöse-Fenster, Inventar). Installiert die
-// Test-API window.CodeGartenTest für automatisierte Tests.
+// Bootstrap für Code-Garten: verbindet den Spielzustand (Inventar/Codes) und die
+// begehbare Welt mit dem 3D-Rendering und der Steuerung (Joystick, Tastatur,
+// Ziehen zum Umsehen). Installiert die Test-API window.CodeGartenTest.
 
 import { GameState } from './logic/gamestate.js';
-import { drawScene } from './engine/scene.js';
+import { World } from './logic/world.js';
+import { drawWorld } from './engine/renderer.js';
 
 const DPR_CAP = 2;
+const LOOK_SENS = 0.005;
 
 class Game {
   constructor() {
     this.canvas = document.getElementById('scene');
     this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
     this.state = new GameState();
+    this.world = new World();
     this.ready = false;
     this.dpr = 1;
     this.cssW = 1;
     this.cssH = 1;
-    this._start = 0;
+    this._last = 0;
     this._toastTimer = null;
+
+    // Steuerungs-Zustand.
+    this.keys = new Set();
+    this.joy = { active: false, x: 0, y: 0, id: null };
+    this.look = { id: null, lastX: 0 };
   }
 
   init() {
     this._wireCodePanel();
     this._wireInfo();
+    this._wireInventory();
     this._buildExamples();
+    this._wireControls();
     this.renderInventory();
     this.updateStats();
 
     window.addEventListener('resize', () => this.resize());
     window.addEventListener('orientationchange', () => this.resize());
     document.addEventListener('gesturestart', (e) => e.preventDefault());
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        this.closeCode();
-        this.closeInfo();
-      }
-    });
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
 
     this.resize();
 
     const loading = document.getElementById('loading');
     if (loading) loading.classList.add('hidden');
+    this._hintTimer = setTimeout(() => {
+      const h = document.getElementById('hint');
+      if (h) h.classList.add('fade');
+    }, 6000);
 
     this.ready = true;
-    this._start = performance.now();
-    this.loop(this._start);
+    this._last = performance.now();
+    this.loop(this._last);
+  }
+
+  // --- Steuerung -----------------------------------------------------------
+  _wireControls() {
+    window.addEventListener('keydown', (e) => {
+      if (this._typing()) return;
+      this.keys.add(e.code);
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
+    });
+    window.addEventListener('keyup', (e) => this.keys.delete(e.code));
+    window.addEventListener('blur', () => this.keys.clear());
+
+    // Umsehen: über das Canvas ziehen (Maus oder Finger).
+    this.canvas.addEventListener('pointerdown', (e) => {
+      if (this.look.id !== null) return;
+      this.look.id = e.pointerId;
+      this.look.lastX = e.clientX;
+      this.canvas.setPointerCapture(e.pointerId);
+    });
+    this.canvas.addEventListener('pointermove', (e) => {
+      if (e.pointerId !== this.look.id) return;
+      const dx = e.clientX - this.look.lastX;
+      this.look.lastX = e.clientX;
+      this.world.applyTurn(dx * LOOK_SENS);
+      this._hideHint();
+    });
+    const endLook = (e) => {
+      if (e.pointerId === this.look.id) this.look.id = null;
+    };
+    this.canvas.addEventListener('pointerup', endLook);
+    this.canvas.addEventListener('pointercancel', endLook);
+
+    // Joystick (bewegen).
+    const stick = document.getElementById('joystick');
+    const knob = document.getElementById('joystick-knob');
+    if (stick && knob) {
+      const radius = 46;
+      const setKnob = (nx, ny) => {
+        knob.style.transform = `translate(${nx * radius}px, ${ny * radius}px)`;
+      };
+      stick.addEventListener('pointerdown', (e) => {
+        this.joy.active = true;
+        this.joy.id = e.pointerId;
+        stick.setPointerCapture(e.pointerId);
+        this._rect = stick.getBoundingClientRect();
+        this._updateJoy(e, setKnob, radius);
+        this._hideHint();
+        e.stopPropagation();
+      });
+      stick.addEventListener('pointermove', (e) => {
+        if (e.pointerId !== this.joy.id) return;
+        this._updateJoy(e, setKnob, radius);
+        e.stopPropagation();
+      });
+      const endJoy = (e) => {
+        if (e.pointerId !== this.joy.id) return;
+        this.joy.active = false;
+        this.joy.id = null;
+        this.joy.x = 0;
+        this.joy.y = 0;
+        setKnob(0, 0);
+      };
+      stick.addEventListener('pointerup', endJoy);
+      stick.addEventListener('pointercancel', endJoy);
+    }
+  }
+
+  _updateJoy(e, setKnob, radius) {
+    const r = this._rect;
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    let nx = (e.clientX - cx) / radius;
+    let ny = (e.clientY - cy) / radius;
+    const len = Math.hypot(nx, ny);
+    if (len > 1) {
+      nx /= len;
+      ny /= len;
+    }
+    this.joy.x = nx;
+    this.joy.y = ny;
+    setKnob(nx, ny);
+  }
+
+  _typing() {
+    const el = document.activeElement;
+    return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
+  }
+
+  _hideHint() {
+    const h = document.getElementById('hint');
+    if (h) h.classList.add('fade');
+  }
+
+  // Aktuelle Steuer-Eingaben als { move, strafe, turn }.
+  readControls() {
+    let move = 0, strafe = 0, turn = 0;
+    const k = this.keys;
+    if (k.has('KeyW') || k.has('ArrowUp')) move += 1;
+    if (k.has('KeyS') || k.has('ArrowDown')) move -= 1;
+    if (k.has('KeyA') || k.has('ArrowLeft')) turn -= 1;
+    if (k.has('KeyD') || k.has('ArrowRight')) turn += 1;
+    if (k.has('KeyQ')) strafe -= 1;
+    if (k.has('KeyE')) strafe += 1;
+    if (this.joy.active) {
+      move += -this.joy.y;
+      strafe += this.joy.x;
+    }
+    return {
+      move: Math.max(-1, Math.min(1, move)),
+      strafe: Math.max(-1, Math.min(1, strafe)),
+      turn: Math.max(-1, Math.min(1, turn)),
+    };
   }
 
   // --- Einlöse-Fenster -----------------------------------------------------
@@ -66,6 +187,13 @@ class Game {
         e.preventDefault();
         this.onRedeem(this.input ? this.input.value : '');
       });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.closeCode();
+        this.closeInfo();
+        this.closeInventory();
+      }
+    });
   }
 
   openCode() {
@@ -129,21 +257,40 @@ class Game {
     }
   }
 
-  // --- Inventar & Kopfzeile -----------------------------------------------
+  // --- Rucksack ------------------------------------------------------------
+  _wireInventory() {
+    this.invOverlay = document.getElementById('inv-overlay');
+    const openBtn = document.getElementById('pack-btn');
+    const closeBtn = document.getElementById('inv-close');
+    if (openBtn) openBtn.addEventListener('click', () => this.openInventory());
+    if (closeBtn) closeBtn.addEventListener('click', () => this.closeInventory());
+    if (this.invOverlay)
+      this.invOverlay.addEventListener('click', (e) => {
+        if (e.target === this.invOverlay) this.closeInventory();
+      });
+  }
+  openInventory() {
+    this.renderInventory();
+    if (this.invOverlay) this.invOverlay.classList.add('show');
+  }
+  closeInventory() {
+    if (this.invOverlay) this.invOverlay.classList.remove('show');
+  }
+
   renderInventory() {
-    const bar = document.getElementById('inv-bar');
-    if (!bar) return;
+    const list = document.getElementById('inv-list');
+    if (!list) return;
     const items = this.state.list();
     if (!items.length) {
-      bar.innerHTML = `<div class="inv-empty">Noch keine Items – tippe auf „Code einlösen“ und probier einen Code!</div>`;
+      list.innerHTML = `<div class="inv-empty">Noch keine Items – tippe auf „Code einlösen“ und probier einen Code!</div>`;
       return;
     }
-    bar.innerHTML = items
+    list.innerHTML = items
       .map(
         (it) => `
-      <div class="inv-item" style="--chip:${it.color}" title="${it.name} · ${it.rarity}">
+      <div class="inv-item" style="--chip:${it.color}">
         <span class="inv-emoji">${it.emoji}</span>
-        <span class="inv-name">${it.name}</span>
+        <span class="inv-meta"><b>${it.name}</b><span class="inv-rar">${it.rarity}</span></span>
         ${it.count > 1 ? `<span class="inv-count">×${it.count}</span>` : ''}
       </div>`
       )
@@ -155,7 +302,7 @@ class Game {
     if (total) total.textContent = String(this.state.totalItems());
   }
 
-  // --- Info-Fenster --------------------------------------------------------
+  // --- Info ----------------------------------------------------------------
   _wireInfo() {
     this.infoOverlay = document.getElementById('info-overlay');
     const openBtn = document.getElementById('info-btn');
@@ -197,19 +344,32 @@ class Game {
     this.drawOnce();
   }
 
+  // Avatar-Zubehör aus dem Inventar an die Welt spiegeln (für den Renderer).
+  _syncAvatar() {
+    this.world.hasKrone = this.state.has('krone');
+    this.world.hasHut = this.state.has('hut');
+    this.world.pet = this.state.has('haustier_drache')
+      ? '🐉'
+      : this.state.has('haustier_hund')
+      ? '🐶'
+      : null;
+  }
+
   drawOnce() {
-    const now = performance.now();
-    const t = (now - (this._start || now)) / 1000;
-    drawScene(this.ctx, this.cssW, this.cssH, this.state, t);
+    this._syncAvatar();
+    const t = performance.now() / 1000;
+    drawWorld(this.ctx, this.cssW, this.cssH, this.world, this.state.list(), t);
   }
 
   loop(now) {
-    const t = (now - this._start) / 1000;
-    drawScene(this.ctx, this.cssW, this.cssH, this.state, t);
+    const dt = Math.min(0.05, Math.max(0, (now - this._last) / 1000));
+    this._last = now;
+    this.world.update(dt, this.readControls());
+    this._syncAvatar();
+    drawWorld(this.ctx, this.cssW, this.cssH, this.world, this.state.list(), now / 1000);
     requestAnimationFrame((n) => this.loop(n));
   }
 
-  // Prüft, ob das aktuelle Canvas quasi einfarbig (leer) ist – für Tests.
   frameIsBlank() {
     const w = this.canvas.width;
     const h = this.canvas.height;
@@ -228,7 +388,7 @@ class Game {
 // --- Start ---
 const game = new Game();
 
-// Test-/Debug-API für deterministische Playwright-Tests.
+// Test-/Debug-API für deterministische Playwright-/Node-Tests.
 window.CodeGartenTest = {
   get ready() {
     return game.ready;
@@ -236,6 +396,7 @@ window.CodeGartenTest = {
   game,
   reset() {
     game.state.reset();
+    game.world.reset();
     game.renderInventory();
     game.updateStats();
     const res = document.getElementById('code-result');
@@ -260,6 +421,18 @@ window.CodeGartenTest = {
   exampleCodes() {
     return game.state.exampleCodes().map((e) => e.code);
   },
+  getPlayer() {
+    return game.world.snapshot();
+  },
+  // Bewegung deterministisch simulieren (für Tests).
+  tick(controls = {}, dt = 0.1, steps = 1) {
+    for (let i = 0; i < steps; i++) game.world.update(dt, controls);
+    return game.world.snapshot();
+  },
+  turn(delta) {
+    game.world.applyTurn(delta);
+    return game.world.snapshot();
+  },
   openPanel() {
     game.openCode();
     return game.codeOverlay ? game.codeOverlay.classList.contains('show') : false;
@@ -267,6 +440,10 @@ window.CodeGartenTest = {
   closePanel() {
     game.closeCode();
     return false;
+  },
+  openInventory() {
+    game.openInventory();
+    return game.invOverlay ? game.invOverlay.classList.contains('show') : false;
   },
   frame() {
     game.drawOnce();

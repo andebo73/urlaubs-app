@@ -15,11 +15,13 @@ Fonts oder Sounds. Damit ist alles lizenzfrei und überall hostbar.
   beim Händler zur Meister-Stufe aufsteigen. Details siehe
   [`tammo-stadt/`](./tammo-stadt/).
 - **[Code-Garten](./code-garten/)** – ein Code-Einlöse-Spiel auf einer
-  Rasen-Wiese. Über den Knopf am Bildschirmrand erscheint ein Eingabefeld; gibt
-  man einen Code ein, bekommt man ein Item geschenkt, das auf der Wiese und im
-  Inventar auftaucht (seltenere Items sind wertvoller, manche trägt der Avatar).
-  Ein paar Beispielcodes sind enthalten. **Konzept-Demo** ohne Login/echte
-  Käufe – als Prototyp für ein später in Roblox integriertes Code-System.
+  **begehbaren 3D-Rasen-Map** (Third-Person, wie eine Roblox-Map). Mit
+  Joystick/WASD laufen, zum Umsehen ziehen. Über den Knopf am Bildschirmrand
+  erscheint ein Eingabefeld; gibt man einen Code ein, bekommt man ein Item
+  geschenkt, das in der Welt und im Rucksack auftaucht (seltenere Items sind
+  wertvoller, Krone/Hut/Haustier trägt der Avatar direkt). Ein paar Beispielcodes
+  sind enthalten. **Konzept-Demo** ohne Login/echte Käufe – als Prototyp für ein
+  später in Roblox integriertes Code-System.
 - *(weitere Apps folgen als eigene Unterordner)*
 
 ## Lokal starten
@@ -64,12 +66,12 @@ tammo-stadt/               App „Tammo Stadt"
     engine/                Rendering (Raycasting, Sprites, Minikarte, HUD, Sound)
     assets/                selbst geschriebene SVGs + Farbpalette
 code-garten/              App „Code-Garten"
-  index.html               Einstieg (Canvas + Seiten-Knopf + Overlays)
+  index.html               Einstieg (Canvas + Joystick + Seiten-Knopf + Overlays)
   styles.css               Layout/UI (nur System-Fonts)
   src/
-    main.js                Bootstrap + Test-API (window.CodeGartenTest)
-    logic/                 Codes, Items, Spielzustand (ohne DOM, testbar)
-    engine/                Rendering (Rasen-Map, Avatar, Item-Marker)
+    main.js                Bootstrap + Steuerung + Test-API (window.CodeGartenTest)
+    logic/                 Codes, Items, Spielzustand + begehbare Welt (testbar)
+    engine/                3D-Rendering (Perspektive, Avatar, Deko, Items)
     assets/                Farbpalette
 test/                      Logik-Tests + Playwright-Harness
 .github/workflows/pages.yml  Deploy auf GitHub Pages

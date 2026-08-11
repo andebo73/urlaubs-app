@@ -96,6 +96,25 @@ async function runCodeGarten(browser, baseUrl) {
   });
   check('Rasen-Szene rendert (nicht einfarbig)', notBlank);
 
+  // Laufen: vorwärts bewegt den Avatar; Drehen ändert die Blickrichtung.
+  const walk = await page.evaluate(() => {
+    window.CodeGartenTest.reset();
+    const before = window.CodeGartenTest.getPlayer();
+    const after = window.CodeGartenTest.tick({ move: 1 }, 0.1, 15);
+    const turned = window.CodeGartenTest.tick({ turn: 1 }, 0.1, 5);
+    return { before, after, turned };
+  });
+  check('Avatar läuft (Position ändert sich)', walk.after.z > walk.before.z);
+  check('Umsehen dreht den Avatar', walk.turned.yaw !== walk.before.yaw);
+
+  // Avatar bleibt im Feld (Grenzen).
+  const bounded = await page.evaluate(() => {
+    window.CodeGartenTest.reset();
+    const p = window.CodeGartenTest.tick({ move: 1 }, 0.2, 400);
+    return Math.abs(p.x) <= 24 && Math.abs(p.z) <= 24;
+  });
+  check('Avatar bleibt im Feld', bounded);
+
   // Seiten-Knopf öffnet das Eingabefeld.
   await page.evaluate(() => window.CodeGartenTest.reset());
   check('Seiten-Knopf sichtbar', await page.locator('#code-open').isVisible());
@@ -116,9 +135,13 @@ async function runCodeGarten(browser, baseUrl) {
   check('gültiger Code vergibt ein Item', redeemed.total === 1 && redeemed.has);
   check('Erfolgsmeldung erscheint', redeemed.ok);
 
-  // Item taucht in der Inventar-Leiste auf.
-  const invCount = await page.locator('#inv-bar .inv-item').count();
-  check('Item erscheint in der Inventar-Leiste', invCount === 1);
+  // Item taucht im Rucksack auf.
+  await page.click('#code-close');
+  await page.click('#pack-btn');
+  const invCount = await page.locator('#inv-list .inv-item').count();
+  check('Item erscheint im Rucksack', invCount === 1);
+  await page.click('#inv-close');
+  await page.click('#code-open');
 
   // Unbekannter Code wird abgewiesen (kein neues Item).
   await page.fill('#code-input', 'quatschcode');

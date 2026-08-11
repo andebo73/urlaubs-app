@@ -16,14 +16,14 @@
   </head>
   <body>
     <div id="app">
-      <!-- Rasen-Map + Avatar + Items -->
+      <!-- Begehbare 3D-Rasen-Map -->
       <canvas id="scene"></canvas>
 
       <!-- Kopfzeile -->
       <header id="topbar">
         <div class="brand"><span class="brand-mark">🌱</span> Code-Garten</div>
         <div class="top-stats">
-          <span class="pill">🎁 <b id="stat-total">0</b> Items</span>
+          <button id="pack-btn" class="pill" type="button" title="Rucksack">🎒 <b id="stat-total">0</b></button>
           <button id="info-btn" class="pill ghost" type="button">ⓘ Info</button>
         </div>
       </header>
@@ -34,8 +34,11 @@
         <span class="side-tab-label">Code<br />einlösen</span>
       </button>
 
-      <!-- Inventar-Leiste unten -->
-      <div id="inv-bar" class="inv-bar"></div>
+      <!-- Lauf-Steuerung (Joystick, links unten) -->
+      <div id="joystick" class="joystick"><div id="joystick-knob" class="joystick-knob"></div></div>
+
+      <!-- Steuer-Hinweis -->
+      <div id="hint" class="hint">Bewegen: Joystick / WASD · Umsehen: über die Wiese ziehen</div>
 
       <!-- Belohnungs-Hinweis -->
       <div id="toast" class="toast"></div>
@@ -45,7 +48,7 @@
         <div class="panel code-panel">
           <button class="panel-close" id="code-close" type="button" aria-label="Schließen">✕</button>
           <h1>🎁 Code einlösen</h1>
-          <p class="panel-sub">Gib einen Code ein und hol dir dein Item auf die Wiese.</p>
+          <p class="panel-sub">Gib einen Code ein und dein Item erscheint auf der Wiese.</p>
           <form id="code-form" class="code-form" autocomplete="off">
             <input
               id="code-input"
@@ -68,6 +71,16 @@
         </div>
       </div>
 
+      <!-- Rucksack -->
+      <div id="inv-overlay" class="overlay">
+        <div class="panel">
+          <button class="panel-close" id="inv-close" type="button" aria-label="Schließen">✕</button>
+          <h1>🎒 Rucksack</h1>
+          <p class="panel-sub" id="inv-sub">Deine eingelösten Items.</p>
+          <div id="inv-list" class="inv-list"></div>
+        </div>
+      </div>
+
       <!-- Info-Fenster -->
       <div id="info-overlay" class="overlay">
         <div class="panel">
@@ -75,17 +88,19 @@
           <div id="info-content">
             <h1>🌱 Code-Garten</h1>
             <p>
-              Löse Codes ein und sammle Items auf deiner Rasen-Wiese. Tippe rechts
-              am Rand auf <b>„Code einlösen“</b>, gib einen Code ein und schon
-              erscheint dein Item.
+              Lauf über die Rasen-Map und sammle Items. Bewege dich mit dem
+              <b>Joystick</b> (unten links) oder <b>WASD</b>/Pfeiltasten; zum
+              Umsehen einfach über die Wiese <b>ziehen</b>.
             </p>
             <p>
-              Je seltener das Item, desto wertvoller:
+              Tippe rechts am Rand auf <b>„Code einlösen“</b>, gib einen Code ein
+              und dein Item erscheint in der Welt und im 🎒 Rucksack. Je seltener,
+              desto wertvoller:
               <span class="tag" style="--chip:#5bb04a">gewöhnlich</span>
               <span class="tag" style="--chip:#4f9df6">selten</span>
               <span class="tag" style="--chip:#a855f7">episch</span>
               <span class="tag" style="--chip:#f6b400">legendär</span>.
-              Manche Items (z. B. Krone oder Haustier) trägt dein Avatar direkt.
+              Krone, Hut oder Haustier trägt dein Avatar direkt.
             </p>
             <p class="note">
               Konzept-Demo: Die Items gehören zu diesem Mini-Spiel. Es gibt keinen
