@@ -85,6 +85,7 @@ export function drawWorld(ctx, W, H, world, items, t) {
   const draws = [];
   addRespawnPads(draws, pj);
   addFountain(draws, pj, t);
+  addSignpost(draws, pj);
   addObby(draws, pj, world);
   addDecorations(draws, pj);
   addItems(draws, pj, items, t);
@@ -177,6 +178,50 @@ function addFountain(draws, pj, t) {
   draws.push(discFace(pj, x, 2.3, z, 0.7, water));
   // kleiner Wasserstrahl (dünne Säule).
   cylinderFaces(pj, x, 2.3, z, 0.14, 0.7 + shimmer * 0.3, '#bfe6fb', '#8fd0f2', 8).forEach((f) => draws.push(f));
+}
+
+// Wegweiser zur Obby: Boden-Pfeil (Richtung +X) + Pfosten mit Schild.
+function addSignpost(draws, pj) {
+  // Boden-Pfeil (weltorientiert, zeigt nach +X zur Obby).
+  const ax = 16.5, az = 0, y = 0.04;
+  const pts = [
+    [ax, az - 0.5], [ax + 2.2, az - 0.5], [ax + 2.2, az - 1.1],
+    [ax + 3.6, az], [ax + 2.2, az + 1.1], [ax + 2.2, az + 0.5], [ax, az + 0.5],
+  ];
+  const verts = pts.map(([x, z]) => pj.toView(x, y, z));
+  draws.push({
+    depth: (verts[0].z || 0) + 100, // flach auf dem Boden, hinter allem
+    fn: (ctx) => {
+      fillViewPoly(ctx, pj, verts, '#ffd23f');
+    },
+  });
+
+  // Pfosten + Schild.
+  const sx = 19, sz = 4.5;
+  boxFaces(pj, sx, 1.3, sz, 0.3, 2.6, 0.3, '#8a5a2b').forEach((f) => draws.push(f));
+  const v = pj.toView(sx, 3.2, sz);
+  if (v.z <= NEAR) return;
+  const s = pj.toScreen(v);
+  const sc = pj.focal / v.z;
+  draws.push({
+    depth: v.z - 0.05,
+    fn: (ctx) => {
+      const w = 3.6 * sc, h = 1.2 * sc;
+      const x0 = s.x - w / 2, y0 = s.y - h / 2;
+      ctx.fillStyle = '#d59a4e';
+      roundRect(ctx, x0, y0, w, h, h * 0.2);
+      ctx.fill();
+      ctx.lineWidth = Math.max(2, 0.05 * sc);
+      ctx.strokeStyle = '#7a4d24';
+      roundRect(ctx, x0, y0, w, h, h * 0.2);
+      ctx.stroke();
+      ctx.fillStyle = '#3a2410';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = `bold ${Math.round(h * 0.46)}px system-ui, "Segoe UI Emoji", sans-serif`;
+      ctx.fillText('🏁 OBBY', s.x, s.y + h * 0.02);
+    },
+  });
 }
 
 // Obby-Plattformen (schwebende Blöcke) + Checkpoint-/Ziel-Marker.
