@@ -2,14 +2,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { Rng } from '../src/logic/rng.js';
-import { generateMaze, isFullyConnected } from '../src/logic/maze.js';
-import { Player } from '../src/logic/player.js';
-import { Inventory } from '../src/logic/inventory.js';
-import { GameState } from '../src/logic/gamestate.js';
-import { playerAttack } from '../src/logic/combat.js';
-import { viertelAt, paintWalls, VIERTEL } from '../src/logic/viertel.js';
-import { MAX_LEVEL, RESOURCES_PER_LEVEL, MAX_TIER, getClass } from '../src/logic/classes.js';
+import { Rng } from '../tammo-stadt/src/logic/rng.js';
+import { generateMaze, isFullyConnected } from '../tammo-stadt/src/logic/maze.js';
+import { Player } from '../tammo-stadt/src/logic/player.js';
+import { Inventory } from '../tammo-stadt/src/logic/inventory.js';
+import { GameState } from '../tammo-stadt/src/logic/gamestate.js';
+import { playerAttack } from '../tammo-stadt/src/logic/combat.js';
+import { viertelAt, paintWalls, VIERTEL } from '../tammo-stadt/src/logic/viertel.js';
+import { MAX_LEVEL, RESOURCES_PER_LEVEL, MAX_TIER, getClass } from '../tammo-stadt/src/logic/classes.js';
 
 test('Rng ist deterministisch für gleichen Seed', () => {
   const a = new Rng(42);

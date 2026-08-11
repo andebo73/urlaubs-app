@@ -1,86 +1,75 @@
-# Tammo Stadt 🏰
+# Meine Apps
 
-Ein kleines **3D-Labyrinth-Abenteuer** im Browser: Streife in der Ego-Perspektive
-durch die Kobold-Stadt, sammle alle Sammelkarten, kämpfe gegen Kobolde, steige
-Stufen auf und werde stärker.
+Eine kleine Sammlung eigenständiger Browser-Apps, gehostet über GitHub Pages.
+Die **Startseite** (`index.html` im Root) verlinkt die einzelnen Apps; jede App
+liegt in einem eigenen Unterordner.
 
-Die App ist eine **Standalone-HTML-App ohne Build-Schritt** – reines Vanilla-JS
+Alle Apps sind **Standalone-HTML ohne Build-Schritt** – reines Vanilla-JS
 (ES-Module), keine Frameworks, keine externen Bibliotheken, keine fremden Bilder,
-Fonts oder Sounds. Alle Grafiken sind selbst geschriebene SVGs. Damit ist alles
-lizenzfrei und überall (z. B. GitHub Pages) hostbar.
+Fonts oder Sounds. Damit ist alles lizenzfrei und überall hostbar.
 
-## Spielen
+## Apps
 
-Spielbar auf **Desktop und Smartphone**.
-
-**Desktop:**
-- Bewegen: `W A S D` oder Pfeiltasten
-- Umsehen: Maus ziehen oder `◀`/`▶`
-- Nehmen / Interagieren: `Leertaste`
-- Angreifen (im Kampf): `F`
-- Neustart: `R`
-
-**Smartphone:**
-- Bewegen: Joystick unten links
-- Umsehen: über die Ansicht wischen
-- Aktionen: Buttons „Nehmen“, „Angreifen“, „Fliehen“
-
-Ziel: Finde alle **6 Sammelkarten** im Labyrinth, ohne von den Kobolden besiegt
-zu werden.
+- **[Tammo Stadt](./tammo-stadt/)** – ein 3D-Labyrinth-Abenteuer (Raycasting).
+  Klasse wählen, Rohstoffe sammeln, Kobolde bekämpfen, Türen/Truhen öffnen und
+  beim Händler zur Meister-Stufe aufsteigen. Details siehe
+  [`tammo-stadt/`](./tammo-stadt/).
+- *(weitere Apps folgen als eigene Unterordner)*
 
 ## Lokal starten
 
-Da ES-Module verwendet werden, muss die Seite über HTTP ausgeliefert werden
-(nicht per Doppelklick / `file://`):
+Da ES-Module verwendet werden, muss über HTTP ausgeliefert werden (nicht per
+`file://`):
 
 ```bash
 python3 -m http.server 8000
-# dann im Browser: http://localhost:8000
+# Startseite:   http://localhost:8000/
+# Tammo Stadt:  http://localhost:8000/tammo-stadt/
 ```
 
-## Tests
+## Tests (Tammo Stadt)
 
 Die Spiellogik ist strikt vom Rendering getrennt und deterministisch (geseedeter
 Zufall), damit sie automatisiert getestet werden kann.
 
 ```bash
-# Reine Logik (kein Browser nötig)
-npm run test:logic
-
-# End-to-End mit Playwright/Chromium (startet selbst einen Testserver)
+npm run test:logic         # reine Logik (kein Browser)
 npm i -D playwright        # einmalig; nur der Treiber
-npm run test:e2e
+npm run test:e2e           # End-to-End (startet selbst einen Testserver)
 ```
 
-Der E2E-Test prüft u. a.: Laden ohne Fehler, Canvas rendert, Bewegung +
-Kollision, Kampf → EP/Stufe, Kartenaufnahme sowie die Touch-Steuerung im
-Handy-Viewport. Über `window.TammoTest` lässt sich das Spiel deterministisch
-fernsteuern.
+Der E2E-Test prüft u. a. die Startseite (Launcher → App) sowie in der App:
+Laden ohne Fehler, Rendering, Bewegung/Kollision, Kampf, Rohstoffe/Stufenkarten,
+Türen/Truhen/Schlüssel, Katakomben-Licht, Aufträge, Händler-Shop und Ausrüstung.
+Über `window.TammoTest` lässt sich das Spiel deterministisch fernsteuern.
 
 ## Projektstruktur
 
 ```
-index.html            Einstieg (Canvas + HUD)
-styles.css            Layout/HUD (nur System-Fonts)
-src/
-  main.js             Bootstrap + Test-API (window.TammoTest)
-  input.js            Tastatur-Eingabe
-  touchcontrols.js    On-Screen-Steuerung (Smartphone)
-  logic/              reine Spiellogik (ohne DOM, testbar)
-  engine/             Rendering (Raycasting, Sprites, Minikarte, HUD)
-  assets/             selbst geschriebene SVGs + Farbpalette
-test/                 Logik-Tests + Playwright-Harness
+index.html                 Startseite (Launcher, verlinkt die Apps)
+tammo-stadt/               App „Tammo Stadt"
+  index.html               Einstieg (Canvas + HUD)
+  styles.css               Layout/HUD (nur System-Fonts)
+  src/
+    main.js                Bootstrap + Test-API (window.TammoTest)
+    input.js               Tastatur-Eingabe
+    touchcontrols.js       On-Screen-Steuerung (Smartphone)
+    logic/                 reine Spiellogik (ohne DOM, testbar)
+    engine/                Rendering (Raycasting, Sprites, Minikarte, HUD, Sound)
+    assets/                selbst geschriebene SVGs + Farbpalette
+test/                      Logik-Tests + Playwright-Harness
+.github/workflows/pages.yml  Deploy auf GitHub Pages
 ```
 
 ## Hosting auf GitHub Pages
 
-Ein Workflow (`.github/workflows/pages.yml`) veröffentlicht das Repository bei
-jedem Push auf `main` automatisch auf GitHub Pages. Alternativ in den
-Repo-Einstellungen unter *Pages* „Deploy from a branch“ → `main` / root wählen.
-Die Datei `.nojekyll` sorgt dafür, dass Pfade unter `src/` unverändert
-ausgeliefert werden.
+Der Workflow `.github/workflows/pages.yml` veröffentlicht das Repository bei jedem
+Push auf `main` automatisch. `.nojekyll` sorgt dafür, dass Pfade unter Unterordnern
+unverändert ausgeliefert werden. Alle Asset-Pfade sind relativ, sodass die Apps
+unter `https://<user>.github.io/urlaubs-app/` und `.../urlaubs-app/tammo-stadt/`
+funktionieren.
 
 ## Lizenz
 
-Eigenständiges Werk. Alle Grafiken, Texte und Code sind selbst erstellt; es
-werden keinerlei fremde Marken oder Assets verwendet.
+Eigenständiges Werk. Alle Grafiken, Texte, Sounds und der Code sind selbst
+erstellt; es werden keinerlei fremde Marken oder Assets verwendet.

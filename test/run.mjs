@@ -25,7 +25,7 @@ function startServer() {
   return new Promise((resolve) => {
     const server = http.createServer((req, res) => {
       let urlPath = decodeURIComponent(req.url.split('?')[0]);
-      if (urlPath === '/') urlPath = '/index.html';
+      if (urlPath.endsWith('/')) urlPath += 'index.html'; // Verzeichnis -> index.html
       const filePath = path.join(ROOT, urlPath);
       if (!filePath.startsWith(ROOT)) {
         res.writeHead(403);
@@ -56,6 +56,21 @@ function check(name, cond) {
     failed++;
     console.error(`  ✗ ${name}`);
   }
+}
+
+async function runLauncher(browser, rootUrl, gameUrl) {
+  console.log('\n== Startseite (Launcher) ==');
+  const page = await browser.newPage({ viewport: { width: 1024, height: 700 } });
+  await page.goto(rootUrl);
+  const title = await page.title();
+  check('Launcher lädt', /App/i.test(title));
+  const link = await page.locator('a.card[href="./tammo-stadt/"]').count();
+  check('Launcher verlinkt Tammo Stadt', link === 1);
+  // Klick auf die Karte führt zur App.
+  await page.click('a.card[href="./tammo-stadt/"]');
+  await page.waitForFunction(() => window.TammoTest && window.TammoTest.ready, { timeout: 10000 });
+  check('Tammo Stadt startet aus dem Launcher', page.url().includes('/tammo-stadt/'));
+  await page.close();
 }
 
 async function runDesktop(browser, baseUrl) {
@@ -301,14 +316,16 @@ async function runMobile(browser, baseUrl) {
 
 async function main() {
   const server = await startServer();
-  const baseUrl = `http://127.0.0.1:${PORT}/`;
+  const rootUrl = `http://127.0.0.1:${PORT}/`;
+  const gameUrl = `${rootUrl}tammo-stadt/`;
   const execPath = process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium';
   const launchOpts = { headless: true };
   if (fs.existsSync(execPath)) launchOpts.executablePath = execPath;
   const browser = await chromium.launch(launchOpts);
   try {
-    await runDesktop(browser, baseUrl);
-    await runMobile(browser, baseUrl);
+    await runLauncher(browser, rootUrl, gameUrl);
+    await runDesktop(browser, gameUrl);
+    await runMobile(browser, gameUrl);
   } finally {
     await browser.close();
     server.close();

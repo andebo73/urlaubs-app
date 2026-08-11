@@ -2,125 +2,134 @@
 <html lang="de">
   <head>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
-    />
-    <title>Tammo Stadt</title>
-    <!-- Selbst gezeichnetes SVG-Favicon (lizenzfrei, keine externe Datei). -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Meine Apps</title>
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a441f'/%3E%3Cpolygon points='16,5 20,13 29,13 22,19 24,28 16,23 8,28 10,19 3,13 12,13' fill='%23f6c453'/%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="./styles.css" />
+    <style>
+      :root {
+        --bg: #0f1117;
+        --bg2: #151824;
+        --card: #1b1f2b;
+        --text: #f4f1e8;
+        --text-dim: #b9b4a5;
+        --accent: #f6c453;
+        --border: rgba(255, 255, 255, 0.1);
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      @media (prefers-color-scheme: light) {
+        :root:not([data-theme="dark"]) {
+          --bg: #f3f1ea;
+          --bg2: #e9e6db;
+          --card: #ffffff;
+          --text: #2a2620;
+          --text-dim: #6b6558;
+          --border: rgba(0, 0, 0, 0.1);
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        background: radial-gradient(1200px 600px at 50% -10%, var(--bg2), var(--bg));
+        color: var(--text);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 48px 20px 60px;
+      }
+      header { text-align: center; margin-bottom: 32px; }
+      .logo {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 14px;
+        display: block;
+      }
+      h1 { margin: 0 0 6px; font-size: clamp(26px, 6vw, 38px); }
+      .sub { margin: 0; color: var(--text-dim); font-size: 16px; }
+      .grid {
+        width: 100%;
+        max-width: 820px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 18px;
+      }
+      .card {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 22px;
+        border-radius: 18px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+        text-decoration: none;
+        color: inherit;
+        transition: transform 0.12s ease, border-color 0.12s ease;
+      }
+      a.card:hover { transform: translateY(-3px); border-color: var(--accent); }
+      .card .icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        font-size: 30px;
+        background: rgba(246, 196, 83, 0.14);
+      }
+      .card h2 { margin: 4px 0 0; font-size: 20px; }
+      .card p { margin: 0; color: var(--text-dim); font-size: 14px; line-height: 1.5; }
+      .card .go {
+        margin-top: auto;
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 14px;
+      }
+      .card.soon { opacity: 0.65; cursor: default; }
+      .card.soon .go { color: var(--text-dim); }
+      .badge {
+        align-self: flex-start;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(246, 196, 83, 0.18);
+        color: var(--accent);
+      }
+      footer { margin-top: 40px; color: var(--text-dim); font-size: 13px; text-align: center; }
+    </style>
   </head>
   <body>
-    <div id="game">
-      <!-- 3D-Ansicht -->
-      <canvas id="view"></canvas>
+    <header>
+      <svg class="logo" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="#2a441f" />
+        <polygon points="16,5 20,13 29,13 22,19 24,28 16,23 8,28 10,19 3,13 12,13" fill="#f6c453" />
+      </svg>
+      <h1>Meine Apps</h1>
+      <p class="sub">Wähle eine App zum Starten</p>
+    </header>
 
-      <!-- HUD oben -->
-      <div id="hud" class="hud-top">
-        <div class="hud-stat">
-          <span class="hud-icon" id="icon-heart"></span>
-          <div class="bar"><div class="bar-fill hp" id="hud-hp-bar"></div></div>
-          <span class="hud-val" id="hud-hp-text">26/26</span>
-        </div>
-        <div class="hud-stat" title="Stufenkarte: Gilden-Rohstoffe für die nächste Stufe">
-          <span class="hud-icon small" id="hud-guild-icon"></span>
-          <div class="bar"><div class="bar-fill guild" id="hud-guild-bar"></div></div>
-          <span class="hud-val" id="hud-guild-text">0/5</span>
-        </div>
-        <div class="hud-chips">
-          <span class="chip">Stufe <b id="hud-level">1/5</b></span>
-          <span class="chip class-chip"><span class="hud-icon small" id="hud-class-icon"></span><b id="hud-class">Kämpfer</b></span>
-          <span class="chip"><b id="hud-viertel">Handelsviertel</b></span>
-          <span class="chip"><span class="hud-icon small" id="icon-shield"></span><b id="hud-armor">0</b></span>
-          <span class="chip">🔑 <b id="hud-keys">0</b></span>
-          <span class="chip quest-chip" id="hud-quest-chip" hidden><b id="hud-quest"></b></span>
-          <span class="chip guide-hint" title="Spielanleitung öffnen">ⓘ Anleitung</span>
-        </div>
-        <div class="hud-res" id="hud-res"></div>
+    <main class="grid">
+      <a class="card" href="./tammo-stadt/">
+        <div class="icon">🏰</div>
+        <h2>Tammo Stadt</h2>
+        <p>Ein 3D-Labyrinth-Abenteuer: Klasse wählen, Rohstoffe sammeln, Kobolde bekämpfen und zur Meister-Stufe aufsteigen.</p>
+        <span class="go">Spielen →</span>
+      </a>
+
+      <div class="card soon">
+        <span class="badge">In Arbeit</span>
+        <div class="icon">✨</div>
+        <h2>Zweite App</h2>
+        <p>Diese App wird gerade gebaut und erscheint bald hier.</p>
+        <span class="go">Demnächst</span>
       </div>
+    </main>
 
-      <!-- Ereignistext -->
-      <div id="hud-message" class="hud-message"></div>
-
-      <!-- Minikarte wird als Overlay auf das Canvas gezeichnet -->
-
-      <!-- Sichtbare Waffe (Viewmodel) -->
-      <div id="weapon" class="weapon"><span class="weapon-tier" id="weapon-tier"></span></div>
-
-      <!-- Ton an/aus -->
-      <button id="btn-mute" class="mute-btn" type="button" title="Ton an/aus">🔊</button>
-
-      <!-- Touch-Steuerung (nur auf Touch-Geräten sichtbar) -->
-      <div id="touch-controls" class="touch-controls"></div>
-
-      <!-- Hilfe/Tastatur (Desktop) -->
-      <div id="help" class="help">
-        WASD / Pfeile: Bewegen &nbsp;·&nbsp; Maus ziehen / ◀▶: Umsehen &nbsp;·&nbsp;
-        Leertaste: Nehmen &nbsp;·&nbsp; F: Angreifen &nbsp;·&nbsp; R: Neustart
-      </div>
-
-      <!-- Kampf-Overlay -->
-      <div id="combat-overlay" class="overlay combat">
-        <div class="combat-box">
-          <div class="combat-enemy" id="combat-enemy-art"></div>
-          <div class="combat-name" id="combat-enemy-name">Kobold</div>
-          <div class="bar big"><div class="bar-fill enemy-hp" id="combat-enemy-hp-bar"></div></div>
-          <div class="combat-hp" id="combat-enemy-hp-text">10/10</div>
-          <div class="combat-actions">
-            <button id="btn-attack" class="btn primary" type="button">Angreifen</button>
-            <button id="btn-flee" class="btn" type="button">Fliehen</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Klassenwahl-Overlay -->
-      <div id="class-overlay" class="overlay classsel">
-        <div class="class-box">
-          <h1>Wähle deine Klasse</h1>
-          <p class="class-intro">Jede Klasse sammelt einen eigenen Rohstoff und spielt sich anders.</p>
-          <div id="class-list" class="class-list"></div>
-        </div>
-      </div>
-
-      <!-- Ende-Overlay -->
-      <div id="end-overlay" class="overlay end">
-        <div class="end-box">
-          <h1 id="end-title">Gewonnen!</h1>
-          <p id="end-text"></p>
-          <button id="btn-restart" class="btn primary" type="button">Neustart</button>
-        </div>
-      </div>
-
-      <!-- Händler-Shop -->
-      <div id="shop-overlay" class="overlay shop">
-        <div class="shop-box">
-          <button id="shop-close" class="guide-close" type="button" aria-label="Schließen">✕</button>
-          <h1>Händler</h1>
-          <div id="shop-info" class="shop-info"></div>
-          <div class="shop-actions">
-            <button id="shop-level" class="btn primary" type="button">Aufsteigen</button>
-            <button id="shop-weapon" class="btn" type="button">Waffe verbessern</button>
-            <button id="shop-armor" class="btn" type="button">Rüstung verbessern</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Spielanleitung (öffnet bei Klick auf den Header) -->
-      <div id="guide-overlay" class="overlay guide">
-        <div class="guide-box">
-          <button id="guide-close" class="guide-close" type="button" aria-label="Schließen">✕</button>
-          <div id="guide-content"></div>
-        </div>
-      </div>
-
-      <!-- Ladeanzeige -->
-      <div id="loading" class="loading">Lade Tammo Stadt …</div>
-    </div>
-
-    <script type="module" src="./src/main.js"></script>
+    <footer>Startseite · gehostet über GitHub Pages</footer>
   </body>
 </html>
