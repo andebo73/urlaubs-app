@@ -85,6 +85,7 @@ export function drawWorld(ctx, W, H, world, items, t) {
   const draws = [];
   addRespawnPads(draws, pj);
   addFountain(draws, pj, t);
+  addObby(draws, pj, world);
   addDecorations(draws, pj);
   addItems(draws, pj, items, t);
   addAvatar(draws, pj, world, t);
@@ -176,6 +177,16 @@ function addFountain(draws, pj, t) {
   draws.push(discFace(pj, x, 2.3, z, 0.7, water));
   // kleiner Wasserstrahl (dünne Säule).
   cylinderFaces(pj, x, 2.3, z, 0.14, 0.7 + shimmer * 0.3, '#bfe6fb', '#8fd0f2', 8).forEach((f) => draws.push(f));
+}
+
+// Obby-Plattformen (schwebende Blöcke) + Checkpoint-/Ziel-Marker.
+function addObby(draws, pj, world) {
+  const H = 3.6; // Dicke der Plattformen
+  for (const s of world.obbyPoses()) {
+    boxFaces(pj, s.x, s.top - H / 2, s.z, s.w, H, s.d, s.color).forEach((f) => draws.push(f));
+    if (s.kind === 'checkpoint') emojiBillboard(draws, pj, s.x, s.top + 1.4, s.z, '⛳', 1.9);
+    if (s.kind === 'goal') emojiBillboard(draws, pj, s.x, s.top + 1.9, s.z, '🏆', 2.6);
+  }
 }
 
 function addRespawnPads(draws, pj) {

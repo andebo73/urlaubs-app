@@ -27,6 +27,7 @@ export const ITEMS = {
   krone:          { name: 'Goldene Krone',    emoji: '👑', rarity: 'legendär',   blurb: 'Die Krone der Meister.' },
   haustier_drache:{ name: 'Drachen-Baby',     emoji: '🐉', rarity: 'legendär',   blurb: 'Ein legendärer Drachen-Begleiter.' },
   diamant:        { name: 'Diamant',          emoji: '💎', rarity: 'legendär',   blurb: 'Der seltenste Schatz überhaupt.' },
+  pokal:          { name: 'Obby-Pokal',       emoji: '🏆', rarity: 'legendär',   blurb: 'Belohnung fürs Meistern der Obby.' },
 };
 
 export function getItem(id) {

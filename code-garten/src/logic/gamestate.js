@@ -51,6 +51,13 @@ export class GameState {
     return { ok: true, code, itemId, item: this._entry(itemId), count: this.inventory.get(itemId) };
   }
 
+  // Item ohne Code gutschreiben (z. B. Belohnung fürs Meistern der Obby).
+  grantItem(id) {
+    this.inventory.set(id, (this.inventory.get(id) || 0) + 1);
+    this.lastItemId = id;
+    return this._entry(id);
+  }
+
   has(id) {
     return this.inventory.has(id);
   }

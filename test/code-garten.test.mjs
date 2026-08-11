@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { GameState } from '../code-garten/src/logic/gamestate.js';
 import { CODES, EXAMPLE_CODES, normalizeCode, codeItemId } from '../code-garten/src/logic/codes.js';
 import { ITEMS, RARITIES } from '../code-garten/src/logic/items.js';
-import { World, FIELD, TREES, FOUNTAIN, RESPAWN_POINTS } from '../code-garten/src/logic/world.js';
+import { World, FIELD, TREES, FOUNTAIN, RESPAWN_POINTS, OBBY } from '../code-garten/src/logic/world.js';
 
 test('normalizeCode ist tolerant (trim, Groß, Leerzeichen)', () => {
   assert.equal(normalizeCode('  woof '), 'WOOF');
@@ -255,4 +255,80 @@ test('onPlatform erkennt das Verlassen der Plattform', () => {
   const w = new World();
   assert.equal(w.onPlatform(0, 0), true);
   assert.equal(w.onPlatform(FIELD + 2, 0), false);
+});
+
+// --- Obby (Kletter-Parcours) ----------------------------------------------
+
+// Lässt den Avatar über einer Plattform fallen, bis er landet (oder aufgibt).
+function dropOnto(w, x, z, fromY) {
+  w.x = x;
+  w.z = z;
+  w.y = fromY;
+  w.vy = 0;
+  w.grounded = false;
+  for (let i = 0; i < 80 && !w.grounded; i++) w.update(0.05, {});
+  return w;
+}
+
+test('man landet auf einer Obby-Plattform', () => {
+  const w = new World();
+  const plat = OBBY[0];
+  dropOnto(w, plat.x, plat.z, plat.top + 5);
+  assert.equal(w.grounded, true, 'sollte gelandet sein');
+  assert.ok(Math.abs(w.y - plat.top) < 0.3, `y=${w.y.toFixed(2)} statt ${plat.top}`);
+});
+
+test('in der Lücke zwischen Plattformen fällt man und respawnt', () => {
+  const w = new World();
+  // x zwischen Plattform 0 (x=28,w=3.2 -> bis 29.6) und 1 (x=32.5 -> ab 30.9).
+  w.x = 30.2;
+  w.z = 0;
+  w.y = 5;
+  w.vy = 0;
+  w.grounded = false;
+  const before = w.respawnCount;
+  for (let i = 0; i < 120 && w.respawnCount === before; i++) w.update(0.05, {});
+  assert.equal(w.respawnCount, before + 1, 'sollte gefallen und respawnt sein');
+});
+
+test('Checkpoint setzt den Respawn-Punkt', () => {
+  const w = new World();
+  const cp = OBBY.find((p) => p.kind === 'checkpoint');
+  dropOnto(w, cp.x, cp.z, cp.top + 4);
+  assert.equal(w.checkpointCount, 1, 'Checkpoint sollte gezählt sein');
+  // Jetzt ins Leere fallen -> Respawn am Checkpoint, nicht am Brunnen.
+  w.y = -40;
+  w.vy = 0;
+  w.grounded = false;
+  w.update(0.05, {});
+  assert.ok(Math.abs(w.x - cp.x) < 0.5 && Math.abs(w.z - cp.z) < 0.5, 'am Checkpoint');
+  assert.ok(Math.abs(w.y - cp.top) < 0.3, 'auf Checkpoint-Höhe');
+});
+
+test('das Ziel gewährt den Obby-Abschluss', () => {
+  const w = new World();
+  const goal = OBBY.find((p) => p.kind === 'goal');
+  dropOnto(w, goal.x, goal.z, goal.top + 4);
+  assert.equal(w.grounded, true);
+  assert.equal(w.reachedGoal, true, 'Ziel sollte als erreicht markiert sein');
+});
+
+test('bewegliche Plattform verschiebt sich mit der Zeit', () => {
+  const w = new World();
+  const mover = OBBY.find((p) => p.motion);
+  const a = w.obbyPose(mover, 0);
+  const b = w.obbyPose(mover, 1.0);
+  const axis = mover.motion.axis;
+  assert.ok(Math.abs(a[axis] - b[axis]) > 0.1, 'Position sollte sich ändern');
+});
+
+test('bewegliche Plattform trägt den stehenden Avatar mit', () => {
+  const w = new World();
+  const mover = OBBY.find((p) => p.motion);
+  dropOnto(w, mover.x, mover.z, mover.top + 4);
+  assert.equal(w.grounded, true);
+  assert.equal(w.groundRef, mover, 'sollte auf der beweglichen Plattform stehen');
+  const z0 = w.z;
+  for (let i = 0; i < 6; i++) w.update(0.05, {});
+  assert.ok(Math.abs(w.z - z0) > 0.05, 'Avatar wird mitbewegt');
 });

@@ -139,6 +139,15 @@ async function runCodeGarten(browser, baseUrl) {
   });
   check('Fallen von der Plattform löst Respawn aus', fall.respawned && fall.onPlatform);
 
+  // Obby: auf der Ziel-Plattform landen gewährt den Pokal.
+  const obby = await page.evaluate(async () => {
+    window.CodeGartenTest.reset();
+    window.CodeGartenTest.place(60, 0, 13); // über der Ziel-Plattform
+    await new Promise((r) => setTimeout(r, 500)); // Render-Loop lässt landen + Belohnung
+    return { has: window.CodeGartenTest.has('pokal'), y: window.CodeGartenTest.getPlayer().y };
+  });
+  check('Obby-Ziel gewährt den Pokal', obby.has === true);
+
   // Seiten-Knopf öffnet das Eingabefeld.
   await page.evaluate(() => window.CodeGartenTest.reset());
   check('Seiten-Knopf sichtbar', await page.locator('#code-open').isVisible());

@@ -28,6 +28,8 @@ class Game {
     this.look = { id: null, lastX: 0 };
     this._jump = false;        // Sprung angefordert (wird pro Frame verbraucht)
     this._lastRespawn = 0;     // zuletzt gesehener Respawn-Zähler
+    this._lastCheckpoint = 0;  // zuletzt gesehener Checkpoint-Zähler
+    this._goalDone = false;    // Obby-Pokal schon vergeben?
   }
 
   init() {
@@ -383,7 +385,19 @@ class Game {
     this.world.update(dt, this.readControls());
     if (this.world.respawnCount !== this._lastRespawn) {
       this._lastRespawn = this.world.respawnCount;
-      this.toast('💦 Zurück am Brunnen!', '#3aa6e0');
+      const c = this.world.checkpoint;
+      this.toast(c ? '⛳ Zurück am Checkpoint!' : '💦 Zurück am Brunnen!', c ? '#4f9df6' : '#3aa6e0');
+    }
+    if (this.world.checkpointCount !== this._lastCheckpoint) {
+      this._lastCheckpoint = this.world.checkpointCount;
+      if (!this.world.reachedGoal) this.toast('⛳ Checkpoint erreicht!', '#4f9df6');
+    }
+    if (this.world.reachedGoal && !this._goalDone) {
+      this._goalDone = true;
+      const e = this.state.grantItem('pokal');
+      this.renderInventory();
+      this.updateStats();
+      this.toast(`🏆 Obby geschafft: ${e.name}!`, e.color);
     }
     this._syncAvatar();
     drawWorld(this.ctx, this.cssW, this.cssH, this.world, this.state.list(), now / 1000);
@@ -418,6 +432,8 @@ window.CodeGartenTest = {
     game.state.reset();
     game.world.reset();
     game._lastRespawn = 0;
+    game._lastCheckpoint = 0;
+    game._goalDone = false;
     game.renderInventory();
     game.updateStats();
     const res = document.getElementById('code-result');
