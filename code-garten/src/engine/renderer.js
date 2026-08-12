@@ -224,12 +224,25 @@ function addSignpost(draws, pj) {
   });
 }
 
-// Obby-Plattformen (schwebende Blöcke) + Checkpoint-/Ziel-Marker.
+// Obby-Plattformen (schwebende Blöcke). Verschwindende Blöcke werden mit
+// abnehmender Deckkraft gezeichnet (Warnung) bzw. als schwacher Geist, wenn
+// sie gerade weg sind. Am Ziel steht ein Pokal.
 function addObby(draws, pj, world) {
   const H = 3.6; // Dicke der Plattformen
   for (const s of world.obbyPoses()) {
-    boxFaces(pj, s.x, s.top - H / 2, s.z, s.w, H, s.d, s.color).forEach((f) => draws.push(f));
-    if (s.kind === 'checkpoint') emojiBillboard(draws, pj, s.x, s.top + 1.4, s.z, '⛳', 1.9);
+    const a = s.alpha != null ? s.alpha : 1;
+    for (const f of boxFaces(pj, s.x, s.top - H / 2, s.z, s.w, H, s.d, s.color)) {
+      if (a < 1) {
+        const orig = f.fn;
+        f.fn = (ctx) => {
+          ctx.save();
+          ctx.globalAlpha = a;
+          orig(ctx);
+          ctx.restore();
+        };
+      }
+      draws.push(f);
+    }
     if (s.kind === 'goal') emojiBillboard(draws, pj, s.x, s.top + 1.9, s.z, '🏆', 2.6);
   }
 }

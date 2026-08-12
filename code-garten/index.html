@@ -53,7 +53,7 @@
         <div class="panel code-panel">
           <button class="panel-close" id="code-close" type="button" aria-label="Schließen">✕</button>
           <h1>🎁 Code einlösen</h1>
-          <p class="panel-sub">Gib einen Code ein und dein Item erscheint auf der Wiese.</p>
+          <p class="panel-sub">Codes gibt es in der Obby. Gib deinen Code ein und dein Item erscheint auf der Wiese.</p>
           <form id="code-form" class="code-form" autocomplete="off">
             <input
               id="code-input"
@@ -63,16 +63,24 @@
               autocapitalize="characters"
               autocorrect="off"
               spellcheck="false"
-              placeholder="z. B. WILLKOMMEN"
+              placeholder="Code eingeben"
               aria-label="Code"
             />
             <button id="code-submit" class="btn primary" type="submit">Einlösen</button>
           </form>
           <div id="code-result" class="code-result" hidden></div>
-          <div class="examples">
-            <div class="examples-title">Beispielcodes zum Ausprobieren</div>
-            <div id="code-examples" class="chips"></div>
-          </div>
+        </div>
+      </div>
+
+      <!-- Obby geschafft -->
+      <div id="obby-overlay" class="overlay">
+        <div class="panel">
+          <button class="panel-close" id="obby-close" type="button" aria-label="Schließen">✕</button>
+          <h1>🏆 Obby geschafft!</h1>
+          <p class="panel-sub">Du hast einen Code freigeschaltet:</p>
+          <div id="obby-code" class="obby-code">–</div>
+          <p id="obby-hint" class="obby-hint"></p>
+          <button id="obby-redeem" class="btn primary" type="button">Code in die Suchleiste übernehmen</button>
         </div>
       </div>
 
@@ -110,10 +118,11 @@
               Krone, Hut oder Haustier trägt dein Avatar direkt.
             </p>
             <p>
-              An der rechten Seite der Map wartet eine <b>Obby</b> (Kletter-Parcours):
-              hüpf von Plattform zu Plattform bis zum Ziel. In der Mitte gibt es
-              einen <b>Checkpoint</b> – fällst du danach, startest du dort neu. Am
-              Ende winkt der 🏆 <b>Obby-Pokal</b>.
+              An der rechten Seite der Map wartet eine <b>Obby</b> (Kletter-Parcours)
+              mit beweglichen und <b>verschwindenden</b> Plattformen. Es gibt
+              <b>keine Checkpoints</b> – fällst du, geht's zurück auf die Map.
+              Schaffst du es bis zum Ziel, wirst du zurück teleportiert und
+              bekommst einen <b>Code</b>, den du oben in der Suchleiste einlöst.
             </p>
             <p class="note">
               Konzept-Demo: Die Items gehören zu diesem Mini-Spiel. Es gibt keinen

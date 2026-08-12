@@ -28,15 +28,14 @@ class Game {
     this.look = { id: null, lastX: 0 };
     this._jump = false;        // Sprung angefordert (wird pro Frame verbraucht)
     this._lastRespawn = 0;     // zuletzt gesehener Respawn-Zähler
-    this._lastCheckpoint = 0;  // zuletzt gesehener Checkpoint-Zähler
-    this._goalDone = false;    // Obby-Pokal schon vergeben?
+    this._rewardCode = null;   // zuletzt in der Obby freigeschalteter Code
   }
 
   init() {
     this._wireCodePanel();
     this._wireInfo();
     this._wireInventory();
-    this._buildExamples();
+    this._wireObby();
     this._wireControls();
     this.renderInventory();
     this.updateStats();
@@ -210,6 +209,7 @@ class Game {
         this.closeCode();
         this.closeInfo();
         this.closeInventory();
+        this.closeObby();
       }
     });
   }
@@ -225,22 +225,40 @@ class Game {
     if (this.codeOverlay) this.codeOverlay.classList.remove('show');
   }
 
-  _buildExamples() {
-    const box = document.getElementById('code-examples');
-    if (!box) return;
-    box.innerHTML = '';
-    for (const { code, item } of this.state.exampleCodes()) {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'chip';
-      chip.style.setProperty('--chip', item ? item.color : '#888');
-      chip.innerHTML = `<span>${item ? item.emoji : '🎁'}</span> ${code}`;
-      chip.addEventListener('click', () => {
-        if (this.input) this.input.value = code;
-        this.onRedeem(code);
+  // --- Obby geschafft ------------------------------------------------------
+  _wireObby() {
+    this.obbyOverlay = document.getElementById('obby-overlay');
+    const close = document.getElementById('obby-close');
+    const redeem = document.getElementById('obby-redeem');
+    if (close) close.addEventListener('click', () => this.closeObby());
+    if (redeem)
+      redeem.addEventListener('click', () => {
+        this.closeObby();
+        if (this.input && this._rewardCode) this.input.value = this._rewardCode;
+        this.openCode();
       });
-      box.appendChild(chip);
-    }
+    if (this.obbyOverlay)
+      this.obbyOverlay.addEventListener('click', (e) => {
+        if (e.target === this.obbyOverlay) this.closeObby();
+      });
+  }
+
+  // Wird aufgerufen, wenn das Obby-Ziel erreicht wurde.
+  onObbyComplete() {
+    this.world.returnToStart();
+    const code = this.state.randomCodeReward();
+    this._rewardCode = code;
+    const item = this.state.itemForCode(code);
+    const codeEl = document.getElementById('obby-code');
+    const hintEl = document.getElementById('obby-hint');
+    if (codeEl) codeEl.textContent = code;
+    if (hintEl) hintEl.innerHTML = item ? `Schaltet frei: <b>${item.emoji} ${item.name}</b>` : '';
+    if (this.obbyOverlay) this.obbyOverlay.classList.add('show');
+    this.toast('🏆 Obby geschafft!', '#f6b400');
+    return code;
+  }
+  closeObby() {
+    if (this.obbyOverlay) this.obbyOverlay.classList.remove('show');
   }
 
   onRedeem(raw) {
@@ -385,19 +403,11 @@ class Game {
     this.world.update(dt, this.readControls());
     if (this.world.respawnCount !== this._lastRespawn) {
       this._lastRespawn = this.world.respawnCount;
-      const c = this.world.checkpoint;
-      this.toast(c ? '⛳ Zurück am Checkpoint!' : '💦 Zurück am Brunnen!', c ? '#4f9df6' : '#3aa6e0');
+      this.toast('💦 Zurück am Brunnen!', '#3aa6e0');
     }
-    if (this.world.checkpointCount !== this._lastCheckpoint) {
-      this._lastCheckpoint = this.world.checkpointCount;
-      if (!this.world.reachedGoal) this.toast('⛳ Checkpoint erreicht!', '#4f9df6');
-    }
-    if (this.world.reachedGoal && !this._goalDone) {
-      this._goalDone = true;
-      const e = this.state.grantItem('pokal');
-      this.renderInventory();
-      this.updateStats();
-      this.toast(`🏆 Obby geschafft: ${e.name}!`, e.color);
+    if (this.world.reachedGoal) {
+      this.world.reachedGoal = false;
+      this.onObbyComplete();
     }
     this._syncAvatar();
     drawWorld(this.ctx, this.cssW, this.cssH, this.world, this.state.list(), now / 1000);
@@ -432,8 +442,10 @@ window.CodeGartenTest = {
     game.state.reset();
     game.world.reset();
     game._lastRespawn = 0;
-    game._lastCheckpoint = 0;
-    game._goalDone = false;
+    game._rewardCode = null;
+    game.closeObby();
+    game.closeCode();
+    game.closeInventory();
     game.renderInventory();
     game.updateStats();
     const res = document.getElementById('code-result');

@@ -1,7 +1,9 @@
 // Begehbare Spielwelt für Code-Garten: Position, Blickrichtung, Springen und
 // Fallen auf einer schwebenden Rasen-Plattform (wie eine Roblox-Map). In der
-// Mitte steht ein Brunnen mit Respawn-Ring. An der Seite gibt es eine kleine
-// Obby (Kletter-Parcours) aus schwebenden Plattformen mit Checkpoint und Ziel.
+// Mitte steht ein Brunnen mit Respawn-Ring. An der Seite gibt es eine längere
+// Obby (Kletter-Parcours) mit beweglichen und verschwindenden Plattformen –
+// ohne Checkpoints: Wer fällt, startet wieder auf der Map. Am Ziel wird man
+// zurück teleportiert.
 // Reine Logik ohne DOM und ohne Laufzeit-Zufall -> vollständig testbar.
 //
 // Koordinaten: X = Ost, Z = "in die Ferne" (Nord), Y = oben. 1 Einheit ~ 1 Stud.
@@ -21,17 +23,24 @@ export const RESPAWN_POINTS = (() => {
   return pts;
 })();
 
-// Obby: schwebende Plattformen an der +X-Seite, ansteigend, mit Checkpoint,
-// beweglicher Plattform und Ziel. `top` = Höhe der Oberfläche.
+// Obby: schwebende Plattformen an der +X-Seite, ansteigend und im Zickzack.
+//  motion: bewegliche Plattform  ·  blink: verschwindende Plattform
+//  kind: 'goal' = Ziel.  `top` = Höhe der Oberfläche.
 export const OBBY = [
-  { x: 28, z: 0, w: 3.2, d: 3.2, top: 1.2, color: '#ff8a3d' },
-  { x: 32.5, z: 2.5, w: 3.2, d: 3.2, top: 2.6, color: '#ffd23f' },
-  { x: 37, z: -2, w: 3.2, d: 3.2, top: 4.0, color: '#5bd1a0' },
-  { x: 41.5, z: 1.5, w: 4.4, d: 4.4, top: 5.2, color: '#4f9df6', kind: 'checkpoint' },
-  { x: 46, z: -1.5, w: 3.2, d: 3.2, top: 6.6, color: '#c77dff' },
-  { x: 50.5, z: 1.5, w: 3.2, d: 3.2, top: 8.0, color: '#ff8a3d' },
-  { x: 55, z: 0, w: 3.4, d: 3.4, top: 9.2, color: '#ffd23f', motion: { axis: 'z', amp: 3, speed: 1.3 } },
-  { x: 60, z: 0, w: 5, d: 5, top: 10.4, color: '#f6b400', kind: 'goal' },
+  { x: 28,   z: 0,    w: 3.2, d: 3.2, top: 1.2,  color: '#ff8a3d' },
+  { x: 32.5, z: 2.5,  w: 3.0, d: 3.0, top: 2.4,  color: '#ffd23f' },
+  { x: 37,   z: -2.5, w: 3.0, d: 3.0, top: 3.6,  color: '#5bd1a0', blink: { period: 2.6, duty: 0.6, phase: 0.0 } },
+  { x: 41.5, z: 1.5,  w: 3.0, d: 3.0, top: 4.8,  color: '#c77dff' },
+  { x: 46,   z: -1.5, w: 3.0, d: 3.0, top: 6.0,  color: '#4f9df6', motion: { axis: 'z', amp: 3.0, speed: 1.3 } },
+  { x: 50.5, z: 2,    w: 3.0, d: 3.0, top: 7.2,  color: '#ff6b9d', blink: { period: 2.4, duty: 0.58, phase: 0.35 } },
+  { x: 55,   z: -2,   w: 2.4, d: 2.4, top: 8.4,  color: '#ffd23f' },
+  { x: 59.5, z: 1.5,  w: 3.0, d: 3.0, top: 9.6,  color: '#5bd1a0', blink: { period: 2.6, duty: 0.6, phase: 0.7 } },
+  { x: 64,   z: -1,   w: 3.0, d: 3.0, top: 10.8, color: '#4f9df6', motion: { axis: 'x', amp: 2.4, speed: 1.1 } },
+  { x: 69,   z: 2,    w: 3.0, d: 3.0, top: 12.0, color: '#ff8a3d' },
+  { x: 73.5, z: -2,   w: 2.6, d: 2.6, top: 13.2, color: '#c77dff', blink: { period: 2.5, duty: 0.58, phase: 0.2 } },
+  { x: 78,   z: 1,    w: 2.6, d: 2.6, top: 14.4, color: '#ffd23f' },
+  { x: 82.5, z: 0,    w: 3.2, d: 3.2, top: 15.4, color: '#ff6b9d', motion: { axis: 'z', amp: 3.5, speed: 1.6 } },
+  { x: 88,   z: 0,    w: 5.0, d: 5.0, top: 16.4, color: '#f6b400', kind: 'goal' },
 ];
 
 // Feste Deko (Bäume mit Kollision). Büsche/Blumen blockieren nicht.
@@ -64,7 +73,7 @@ const TURN = 2.6;      // Bogenmaß pro Sekunde
 const GRAVITY = 55;    // Studs pro Sekunde²
 const JUMP_V = 22;     // Absprung-Geschwindigkeit
 const RESPAWN_Y = -26; // fällt man tiefer, wird man ge-respawnt
-const LAND_EPS = 0.25; // Toleranz beim Aufsetzen auf eine Plattform
+const LAND_EPS = 0.25; // Toleranz beim Aufsetzen
 
 export class World {
   constructor() {
@@ -77,10 +86,7 @@ export class World {
     this.respawnCount = 0;
     this.walkPhase = 0;
     this.moving = false;
-    this.groundRef = null;   // Plattform, auf der man steht (für bewegliche)
-    this.checkpoint = null;  // {x,y,z,yaw} oder null
-    this.checkpointRef = null;
-    this.checkpointCount = 0;
+    this.groundRef = null;
     this.reachedGoal = false;
     this._spawnAt(0);
   }
@@ -96,21 +102,16 @@ export class World {
     this.yaw = Math.atan2(-p.x, -p.z); // Blick zum Brunnen
   }
 
+  // Nach dem Obby-Abschluss zurück auf die Map.
+  returnToStart() {
+    this.respawnIndex = 0;
+    this._spawnAt(0);
+  }
+
   respawn() {
     this.respawnCount++;
-    if (this.checkpoint) {
-      const c = this.checkpoint;
-      this.x = c.x;
-      this.z = c.z;
-      this.y = c.y;
-      this.vy = 0;
-      this.grounded = true;
-      this.groundRef = null;
-      this.yaw = c.yaw;
-    } else {
-      this.respawnIndex++;
-      this._spawnAt(this.respawnIndex);
-    }
+    this.respawnIndex++;
+    this._spawnAt(this.respawnIndex);
   }
 
   forward() {
@@ -120,12 +121,24 @@ export class World {
     return { x: Math.cos(this.yaw), z: -Math.sin(this.yaw) };
   }
 
-  // Über der Haupt-Plattform (Rasen)?
   onPlatform(x = this.x, z = this.z) {
     return Math.abs(x) <= FIELD && Math.abs(z) <= FIELD;
   }
 
-  // Aktuelle Position einer Obby-Plattform (berücksichtigt Bewegung).
+  // Ist eine (verschwindende) Plattform gerade fest?
+  _blinkState(p, time) {
+    if (!p.blink) return { solid: true, alpha: 1 };
+    const u = mod(time / p.blink.period + p.blink.phase, 1);
+    if (u < p.blink.duty) {
+      const left = p.blink.duty - u;
+      // Kurz vor dem Verschwinden warnend flackern.
+      const alpha = left < 0.18 ? 0.4 + 0.6 * Math.abs(Math.sin(time * 22)) : 1;
+      return { solid: true, alpha };
+    }
+    return { solid: false, alpha: 0.16 }; // Geist – kommt gleich wieder
+  }
+
+  // Aktueller Zustand einer Obby-Plattform (Bewegung + Verschwinden).
   obbyPose(p, time = this.time) {
     let x = p.x;
     let z = p.z;
@@ -134,22 +147,24 @@ export class World {
       if (p.motion.axis === 'x') x += o;
       else z += o;
     }
-    return { x, z, w: p.w, d: p.d, top: p.top, color: p.color, kind: p.kind, ref: p };
+    const b = this._blinkState(p, time);
+    return { x, z, w: p.w, d: p.d, top: p.top, color: p.color, kind: p.kind, ref: p, solid: b.solid, alpha: b.alpha };
   }
 
   obbyPoses() {
     return OBBY.map((p) => this.obbyPose(p));
   }
 
-  // Alle festen Oberflächen: Haupt-Plattform + Obby.
+  // Alle festen Oberflächen: Haupt-Plattform + feste Obby-Plattformen.
   _solids() {
-    return [
-      { x: 0, z: 0, w: 2 * FIELD, d: 2 * FIELD, top: 0, kind: 'lawn', ref: null },
-      ...this.obbyPoses(),
-    ];
+    const arr = [{ x: 0, z: 0, w: 2 * FIELD, d: 2 * FIELD, top: 0, kind: 'lawn', ref: null }];
+    for (const p of OBBY) {
+      const q = this.obbyPose(p);
+      if (q.solid) arr.push(q);
+    }
+    return arr;
   }
 
-  // Höchste Oberfläche, auf die man in diesem Schritt aufsetzt (oder null).
   _landing(prevY, newY, x, z) {
     let best = null;
     for (const s of this._solids()) {
@@ -162,7 +177,6 @@ export class World {
     return best;
   }
 
-  // Kamera hinter/über dem Avatar (folgt Höhe beim Springen/Fallen).
   camera() {
     const f = this.forward();
     const CAM_DIST = 10.5;
@@ -180,7 +194,6 @@ export class World {
     if (delta) this.yaw += delta;
   }
 
-  // Ein Simulationsschritt. controls: { move, strafe, turn, jump }.
   update(dt, controls = {}) {
     // Bewegliche Plattform "trägt" den Avatar, solange er darauf steht.
     if (this.grounded && this.groundRef && this.groundRef.motion) {
@@ -198,7 +211,6 @@ export class World {
     const turn = clamp(controls.turn || 0, -1, 1);
     this.yaw += turn * TURN * dt;
 
-    // Horizontale Bewegung (auch in der Luft steuerbar).
     const f = this.forward();
     const r = this.right();
     let dx = f.x * move + r.x * strafe;
@@ -214,7 +226,6 @@ export class World {
     this.x = p.x;
     this.z = p.z;
 
-    // Vertikale Physik.
     if (controls.jump && this.grounded) {
       this.vy = JUMP_V;
       this.grounded = false;
@@ -230,7 +241,7 @@ export class World {
       this.vy = 0;
       this.grounded = true;
       this.groundRef = land.ref;
-      this._touch(land);
+      if (land.ref && land.ref.kind === 'goal') this.reachedGoal = true;
     } else {
       this.grounded = false;
       this.groundRef = null;
@@ -244,21 +255,6 @@ export class World {
     return this.snapshot();
   }
 
-  // Checkpoint/Ziel merken, wenn man darauf landet.
-  _touch(land) {
-    if (!land.ref) return;
-    const kind = land.ref.kind;
-    if (kind === 'checkpoint' || kind === 'goal') {
-      if (this.checkpointRef !== land.ref) {
-        this.checkpointRef = land.ref;
-        this.checkpointCount++;
-        this.checkpoint = { x: land.ref.x, y: land.ref.top, z: land.ref.z, yaw: Math.PI / 2 };
-      }
-    }
-    if (kind === 'goal') this.reachedGoal = true;
-  }
-
-  // Horizontale Kollision (Brunnen + Bäume) – nur über der Haupt-Plattform.
   _resolveXZ(x, z) {
     if (this.onPlatform(x, z)) {
       ({ x, z } = pushOut(x, z, FOUNTAIN.x, FOUNTAIN.z, FOUNTAIN.r + 0.6));
@@ -280,10 +276,13 @@ export class World {
       onPlatform: this.onPlatform(),
       moving: this.moving,
       respawnCount: this.respawnCount,
-      checkpointCount: this.checkpointCount,
       reachedGoal: this.reachedGoal,
     };
   }
+}
+
+function mod(a, n) {
+  return ((a % n) + n) % n;
 }
 
 function pushOut(x, z, cx, cz, minDist) {

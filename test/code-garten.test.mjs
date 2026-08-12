@@ -291,18 +291,31 @@ test('in der Lücke zwischen Plattformen fällt man und respawnt', () => {
   assert.equal(w.respawnCount, before + 1, 'sollte gefallen und respawnt sein');
 });
 
-test('Checkpoint setzt den Respawn-Punkt', () => {
+test('verschwindende Plattform wechselt zwischen fest und weg', () => {
   const w = new World();
-  const cp = OBBY.find((p) => p.kind === 'checkpoint');
-  dropOnto(w, cp.x, cp.z, cp.top + 4);
-  assert.equal(w.checkpointCount, 1, 'Checkpoint sollte gezählt sein');
-  // Jetzt ins Leere fallen -> Respawn am Checkpoint, nicht am Brunnen.
-  w.y = -40;
-  w.vy = 0;
-  w.grounded = false;
-  w.update(0.05, {});
-  assert.ok(Math.abs(w.x - cp.x) < 0.5 && Math.abs(w.z - cp.z) < 0.5, 'am Checkpoint');
-  assert.ok(Math.abs(w.y - cp.top) < 0.3, 'auf Checkpoint-Höhe');
+  const blk = OBBY.find((p) => p.blink);
+  let solidSeen = false;
+  let goneSeen = false;
+  for (let t = 0; t < blk.blink.period; t += 0.1) {
+    if (w.obbyPose(blk, t).solid) solidSeen = true;
+    else goneSeen = true;
+  }
+  assert.ok(solidSeen && goneSeen, 'sollte erscheinen und verschwinden');
+});
+
+test('_solids enthält eine verschwundene Plattform nicht', () => {
+  const w = new World();
+  const blk = OBBY.find((p) => p.blink);
+  // Zeitpunkt suchen, an dem der Block weg ist.
+  let tGone = 0;
+  while (w.obbyPose(blk, tGone).solid && tGone < 10) tGone += 0.05;
+  w.time = tGone;
+  assert.ok(!w._solids().some((s) => s.ref === blk), 'verschwundener Block ist keine Oberfläche');
+  // ... und wenn er fest ist, ist er dabei.
+  let tSolid = 0;
+  while (!w.obbyPose(blk, tSolid).solid && tSolid < 10) tSolid += 0.05;
+  w.time = tSolid;
+  assert.ok(w._solids().some((s) => s.ref === blk), 'fester Block ist enthalten');
 });
 
 test('das Ziel gewährt den Obby-Abschluss', () => {
@@ -311,6 +324,29 @@ test('das Ziel gewährt den Obby-Abschluss', () => {
   dropOnto(w, goal.x, goal.z, goal.top + 4);
   assert.equal(w.grounded, true);
   assert.equal(w.reachedGoal, true, 'Ziel sollte als erreicht markiert sein');
+});
+
+test('keine Checkpoints mehr – Fallen bringt zurück zum Brunnen', () => {
+  const w = new World();
+  const goal = OBBY.find((p) => p.kind === 'goal');
+  dropOnto(w, goal.x, goal.z, goal.top + 3); // war früher ein Checkpoint-Kandidat
+  // Ins Leere fallen -> Respawn am Brunnen-Ring (nicht an einer Obby-Plattform).
+  w.y = -40;
+  w.vy = 0;
+  w.grounded = false;
+  w.update(0.05, {});
+  assert.ok(Math.abs(Math.hypot(w.x, w.z) - 7) < 0.01, 'zurück am Brunnen-Ring');
+});
+
+test('returnToStart teleportiert zurück auf die Map', () => {
+  const w = new World();
+  const goal = OBBY.find((p) => p.kind === 'goal');
+  dropOnto(w, goal.x, goal.z, goal.top + 3);
+  assert.equal(w.reachedGoal, true);
+  w.returnToStart();
+  assert.ok(Math.abs(Math.hypot(w.x, w.z) - 7) < 0.01, 'zurück am Ring');
+  assert.equal(w.grounded, true);
+  assert.ok(w.onPlatform(), 'wieder auf der Haupt-Plattform');
 });
 
 test('bewegliche Plattform verschiebt sich mit der Zeit', () => {
@@ -325,7 +361,7 @@ test('bewegliche Plattform verschiebt sich mit der Zeit', () => {
 test('bewegliche Plattform trägt den stehenden Avatar mit', () => {
   const w = new World();
   const mover = OBBY.find((p) => p.motion);
-  dropOnto(w, mover.x, mover.z, mover.top + 4);
+  dropOnto(w, mover.x, mover.z, mover.top + 1); // kleine Fallhöhe: Block bleibt in Reichweite
   assert.equal(w.grounded, true);
   assert.equal(w.groundRef, mover, 'sollte auf der beweglichen Plattform stehen');
   const z0 = w.z;

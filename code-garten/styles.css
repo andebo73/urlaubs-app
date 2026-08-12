@@ -427,6 +427,28 @@ button.pill.ghost:hover {
   background: var(--chip, #888);
 }
 
+.obby-code {
+  margin: 6px 0 10px;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(246, 180, 0, 0.14);
+  border: 2px dashed #f6b400;
+  text-align: center;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--panel-text);
+}
+.obby-hint {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--panel-dim);
+  text-align: center;
+}
+#obby-redeem {
+  width: 100%;
+}
+
 #info-content h1 {
   margin: 0 0 12px;
 }

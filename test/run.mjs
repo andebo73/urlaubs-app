@@ -139,14 +139,29 @@ async function runCodeGarten(browser, baseUrl) {
   });
   check('Fallen von der Plattform löst Respawn aus', fall.respawned && fall.onPlatform);
 
-  // Obby: auf der Ziel-Plattform landen gewährt den Pokal.
+  // Obby: auf der Ziel-Plattform landen -> Code freischalten + zurück teleportiert.
   const obby = await page.evaluate(async () => {
     window.CodeGartenTest.reset();
-    window.CodeGartenTest.place(60, 0, 13); // über der Ziel-Plattform
-    await new Promise((r) => setTimeout(r, 500)); // Render-Loop lässt landen + Belohnung
-    return { has: window.CodeGartenTest.has('pokal'), y: window.CodeGartenTest.getPlayer().y };
+    window.CodeGartenTest.place(88, 0, 19); // über der Ziel-Plattform
+    await new Promise((r) => setTimeout(r, 600)); // Render-Loop lässt landen + Belohnung
+    return {
+      overlay: document.getElementById('obby-overlay').classList.contains('show'),
+      code: document.getElementById('obby-code').textContent.trim(),
+      onPlatform: window.CodeGartenTest.getPlayer().onPlatform,
+    };
   });
-  check('Obby-Ziel gewährt den Pokal', obby.has === true);
+  check('Obby-Abschluss schaltet einen Code frei', obby.overlay && obby.code.length > 1);
+  check('nach dem Abschluss zurück auf die Map teleportiert', obby.onPlatform === true);
+
+  // Freigeschalteten Code aus dem Abschluss-Fenster einlösen.
+  const claimed = await page.evaluate(async () => {
+    document.getElementById('obby-redeem').click();
+    await new Promise((r) => setTimeout(r, 60));
+    const val = document.getElementById('code-input').value;
+    document.getElementById('code-submit').click();
+    return { val, total: window.CodeGartenTest.totalItems() };
+  });
+  check('freigeschalteter Code lässt sich einlösen', claimed.val.length > 1 && claimed.total >= 1);
 
   // Seiten-Knopf öffnet das Eingabefeld.
   await page.evaluate(() => window.CodeGartenTest.reset());
@@ -191,11 +206,9 @@ async function runCodeGarten(browser, baseUrl) {
   const dup = await page.evaluate(() => window.CodeGartenTest.totalItems());
   check('Code nicht doppelt einlösbar', dup === 1);
 
-  // Beispielcode-Chip vergibt direkt ein Item.
-  const chip = page.locator('#code-examples .chip', { hasText: 'NINJA' });
-  await chip.click();
-  const afterChip = await page.evaluate(() => window.CodeGartenTest.has('schwert'));
-  check('Beispielcode-Chip löst ein Item ein', afterChip);
+  // Keine Beispielcode-Chips mehr (Codes kommen aus der Obby).
+  const chips = await page.locator('#code-examples').count();
+  check('keine Beispielcode-Chips mehr', chips === 0);
 
   await page.close();
 }

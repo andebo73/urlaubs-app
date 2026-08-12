@@ -51,11 +51,21 @@ export class GameState {
     return { ok: true, code, itemId, item: this._entry(itemId), count: this.inventory.get(itemId) };
   }
 
-  // Item ohne Code gutschreiben (z. B. Belohnung fürs Meistern der Obby).
-  grantItem(id) {
-    this.inventory.set(id, (this.inventory.get(id) || 0) + 1);
-    this.lastItemId = id;
-    return this._entry(id);
+  // Noch nicht eingelöste Codes.
+  lockedCodes() {
+    return Object.keys(CODES).filter((c) => !this.used.has(c));
+  }
+
+  // Ein Code als Belohnung (bevorzugt noch nicht eingelöste). rnd: 0..1.
+  randomCodeReward(rnd = Math.random()) {
+    const locked = this.lockedCodes();
+    const pool = locked.length ? locked : Object.keys(CODES);
+    return pool[Math.floor(rnd * pool.length) % pool.length];
+  }
+
+  // Item-Eintrag zu einem Code (für die Anzeige).
+  itemForCode(code) {
+    return this._entry(CODES[code]);
   }
 
   has(id) {
