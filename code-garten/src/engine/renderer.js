@@ -4,7 +4,7 @@
 // Billboards. Kein WebGL, keine externen Assets.
 
 import { palette as P } from '../assets/palette.js';
-import { FIELD, TREES, BUSHES, FLOWERS, FOUNTAIN, RESPAWN_POINTS } from '../logic/world.js';
+import { FIELD, TREES, BUSHES, FLOWERS, FOUNTAIN, RESPAWN_POINTS, WALLS } from '../logic/world.js';
 
 const FOV = 1.02;      // Blickwinkel (Bogenmaß)
 const NEAR = 0.06;     // Nah-Ebene für das Clipping
@@ -87,6 +87,7 @@ export function drawWorld(ctx, W, H, world, items, t) {
   addFountain(draws, pj, t);
   addSignpost(draws, pj);
   addObby(draws, pj, world);
+  addWalls(draws, pj);
   addDecorations(draws, pj);
   addItems(draws, pj, items, t);
   addAvatar(draws, pj, world, t);
@@ -244,6 +245,24 @@ function addObby(draws, pj, world) {
       draws.push(f);
     }
     if (s.kind === 'goal') emojiBillboard(draws, pj, s.x, s.top + 1.9, s.z, '🏆', 2.6);
+  }
+}
+
+// Wandsprung-Wände: halbtransparent, damit man den Avatar dahinter sieht.
+function addWalls(draws, pj) {
+  for (const wl of WALLS) {
+    const cy = (wl.y0 + wl.y1) / 2;
+    const h = wl.y1 - wl.y0;
+    for (const f of boxFaces(pj, wl.x, cy, wl.z, wl.w, h, wl.d, wl.color || '#8b3fd4')) {
+      const orig = f.fn;
+      f.fn = (ctx) => {
+        ctx.save();
+        ctx.globalAlpha = 0.42;
+        orig(ctx);
+        ctx.restore();
+      };
+      draws.push(f);
+    }
   }
 }
 

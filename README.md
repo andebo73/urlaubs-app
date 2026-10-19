@@ -19,11 +19,12 @@ Fonts oder Sounds. Damit ist alles lizenzfrei und überall hostbar.
   Joystick/WASD laufen, **springen** (Leertaste/Knopf) und zum Umsehen ziehen.
   Die Map ist eine schwebende Plattform: Fällt man herunter, wird man an den
   **Respawn-Punkten rund um den Brunnen** in der Mitte wieder eingesetzt. An der
-  Seite gibt es eine **Obby** (Kletter-Parcours) aus schwebenden Plattformen mit
-  **beweglichen und verschwindenden** Blöcken – ohne Checkpoints (wer fällt,
-  startet auf der Map). Am Ziel wird man zurück teleportiert und schaltet einen
-  zufälligen **Code** frei, den man dann einlöst (darum gibt es keine
-  Beispielcodes mehr).
+  Seite steht ein **Troll-Turm** (Obby) aus farbigen Stockwerken mit
+  **beweglichen und verschwindenden** Blöcken und einem **Wandsprung-Schacht**
+  (in der Luft an einer Wand springen); mit dem Ziehen kann man auch nach oben
+  schauen. Ohne Checkpoints (wer fällt, startet auf der Map). Am Ziel wird man
+  zurück teleportiert und schaltet einen zufälligen **Code** frei, den man dann
+  einlöst (darum gibt es keine Beispielcodes mehr).
   Über den Knopf am Bildschirmrand
   erscheint ein Eingabefeld; gibt man einen Code ein, bekommt man ein Item
   geschenkt, das in der Welt und im Rucksack auftaucht (seltenere Items sind

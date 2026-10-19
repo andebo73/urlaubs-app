@@ -142,7 +142,8 @@ async function runCodeGarten(browser, baseUrl) {
   // Obby: auf der Ziel-Plattform landen -> Code freischalten + zurück teleportiert.
   const obby = await page.evaluate(async () => {
     window.CodeGartenTest.reset();
-    window.CodeGartenTest.place(88, 0, 19); // über der Ziel-Plattform
+    const g = window.CodeGartenTest.goalPos();
+    window.CodeGartenTest.place(g.x, g.z, g.top + 2); // über der Ziel-Plattform
     await new Promise((r) => setTimeout(r, 600)); // Render-Loop lässt landen + Belohnung
     return {
       overlay: document.getElementById('obby-overlay').classList.contains('show'),

@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { GameState } from '../code-garten/src/logic/gamestate.js';
 import { CODES, EXAMPLE_CODES, normalizeCode, codeItemId } from '../code-garten/src/logic/codes.js';
 import { ITEMS, RARITIES } from '../code-garten/src/logic/items.js';
-import { World, FIELD, TREES, FOUNTAIN, RESPAWN_POINTS, OBBY } from '../code-garten/src/logic/world.js';
+import { World, FIELD, TREES, FOUNTAIN, RESPAWN_POINTS, OBBY, WALLS } from '../code-garten/src/logic/world.js';
 
 test('normalizeCode ist tolerant (trim, Groß, Leerzeichen)', () => {
   assert.equal(normalizeCode('  woof '), 'WOOF');
@@ -278,16 +278,15 @@ test('man landet auf einer Obby-Plattform', () => {
   assert.ok(Math.abs(w.y - plat.top) < 0.3, `y=${w.y.toFixed(2)} statt ${plat.top}`);
 });
 
-test('in der Lücke zwischen Plattformen fällt man und respawnt', () => {
+test('über dem Leeren (neben dem Turm) fällt man und respawnt', () => {
   const w = new World();
-  // x zwischen Plattform 0 (x=28,w=3.2 -> bis 29.6) und 1 (x=32.5 -> ab 30.9).
-  w.x = 30.2;
-  w.z = 0;
-  w.y = 5;
+  w.x = 120;
+  w.z = 60;
+  w.y = 6;
   w.vy = 0;
   w.grounded = false;
   const before = w.respawnCount;
-  for (let i = 0; i < 120 && w.respawnCount === before; i++) w.update(0.05, {});
+  for (let i = 0; i < 160 && w.respawnCount === before; i++) w.update(0.05, {});
   assert.equal(w.respawnCount, before + 1, 'sollte gefallen und respawnt sein');
 });
 
@@ -367,4 +366,51 @@ test('bewegliche Plattform trägt den stehenden Avatar mit', () => {
   const z0 = w.z;
   for (let i = 0; i < 6; i++) w.update(0.05, {});
   assert.ok(Math.abs(w.z - z0) > 0.05, 'Avatar wird mitbewegt');
+});
+
+// --- Wandsprünge -----------------------------------------------------------
+
+test('Wände blockieren und merken den Wandkontakt', () => {
+  const w = new World();
+  const wall = WALLS[0];
+  w.y = (wall.y0 + wall.y1) / 2;
+  const res = w._resolveXZ(wall.x, wall.z); // mitten in die Wand
+  const insideZ = res.z > wall.z - wall.d / 2 && res.z < wall.z + wall.d / 2;
+  assert.ok(!insideZ, 'wird aus der Wand herausgeschoben');
+  assert.ok(w._wallTouch, 'Wandkontakt wird erkannt');
+});
+
+test('Wandkontakt nur innerhalb der Wandhöhe', () => {
+  const w = new World();
+  const wall = WALLS[0];
+  w.y = wall.y1 + 5; // weit über der Wand
+  w._resolveXZ(wall.x, wall.z);
+  assert.ok(!w._wallTouch, 'über der Wand kein Kontakt');
+});
+
+test('Wandsprung gibt in der Luft Auftrieb', () => {
+  const w = new World();
+  const wall = WALLS[0];
+  w.x = wall.x;
+  w.z = wall.z;
+  w.y = (wall.y0 + wall.y1) / 2;
+  w.vy = -2;
+  w.grounded = false;
+  w.update(0.05, {}); // schiebt an die Wand, setzt Wandkontakt
+  assert.ok(w._wallTouch, 'sollte die Wand berühren');
+  const vyBefore = w.vy;
+  w.update(0.05, { jump: true });
+  assert.ok(w.vy > vyBefore + 10, `Wandsprung-Auftrieb zu gering: ${w.vy.toFixed(1)}`);
+});
+
+test('Wandgleiten bremst den Fall an der Wand', () => {
+  const w = new World();
+  const wall = WALLS[0];
+  w.x = wall.x;
+  w.z = wall.z;
+  w.y = (wall.y0 + wall.y1) / 2;
+  w.vy = -20; // schneller Fall
+  w.grounded = false;
+  w.update(0.05, {});
+  assert.ok(w.vy >= -7.01, `Fall sollte an der Wand gebremst sein: ${w.vy.toFixed(1)}`);
 });

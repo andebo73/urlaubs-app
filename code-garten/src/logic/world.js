@@ -1,9 +1,9 @@
-// Begehbare Spielwelt für Code-Garten: Position, Blickrichtung, Springen und
-// Fallen auf einer schwebenden Rasen-Plattform (wie eine Roblox-Map). In der
-// Mitte steht ein Brunnen mit Respawn-Ring. An der Seite gibt es eine längere
-// Obby (Kletter-Parcours) mit beweglichen und verschwindenden Plattformen –
-// ohne Checkpoints: Wer fällt, startet wieder auf der Map. Am Ziel wird man
-// zurück teleportiert.
+// Begehbare Spielwelt für Code-Garten: Position, Blickrichtung, Springen,
+// Wandsprünge und Fallen auf einer schwebenden Rasen-Plattform (wie eine
+// Roblox-Map). In der Mitte steht ein Brunnen mit Respawn-Ring. An der Seite
+// steht ein Troll-Turm (Obby) aus farbigen Stockwerken mit beweglichen und
+// verschwindenden Plattformen sowie einem Wandsprung-Schacht. Keine Checkpoints:
+// Wer fällt, startet unten auf der Map. Am Ziel wird man zurück teleportiert.
 // Reine Logik ohne DOM und ohne Laufzeit-Zufall -> vollständig testbar.
 //
 // Koordinaten: X = Ost, Z = "in die Ferne" (Nord), Y = oben. 1 Einheit ~ 1 Stud.
@@ -11,7 +11,6 @@
 export const FIELD = 24;                        // halbe Kantenlänge der Plattform
 export const FOUNTAIN = { x: 0, z: 0, r: 2.9 }; // Brunnen in der Mitte
 
-// Respawn-Punkte im Ring um den Brunnen.
 export const RESPAWN_POINTS = (() => {
   const pts = [];
   const R = 7;
@@ -23,27 +22,41 @@ export const RESPAWN_POINTS = (() => {
   return pts;
 })();
 
-// Obby: schwebende Plattformen an der +X-Seite, ansteigend und im Zickzack.
-//  motion: bewegliche Plattform  ·  blink: verschwindende Plattform
-//  kind: 'goal' = Ziel.  `top` = Höhe der Oberfläche.
+// Troll-Turm: Stockwerke steigen entlang +X an. motion = beweglich,
+// blink = verschwindend, kind:'goal' = Ziel. `top` = Höhe der Oberfläche.
 export const OBBY = [
-  { x: 28,   z: 0,    w: 3.2, d: 3.2, top: 1.2,  color: '#ff8a3d' },
-  { x: 32.5, z: 2.5,  w: 3.0, d: 3.0, top: 2.4,  color: '#ffd23f' },
-  { x: 37,   z: -2.5, w: 3.0, d: 3.0, top: 3.6,  color: '#5bd1a0', blink: { period: 2.6, duty: 0.6, phase: 0.0 } },
-  { x: 41.5, z: 1.5,  w: 3.0, d: 3.0, top: 4.8,  color: '#c77dff' },
-  { x: 46,   z: -1.5, w: 3.0, d: 3.0, top: 6.0,  color: '#4f9df6', motion: { axis: 'z', amp: 3.0, speed: 1.3 } },
-  { x: 50.5, z: 2,    w: 3.0, d: 3.0, top: 7.2,  color: '#ff6b9d', blink: { period: 2.4, duty: 0.58, phase: 0.35 } },
-  { x: 55,   z: -2,   w: 2.4, d: 2.4, top: 8.4,  color: '#ffd23f' },
-  { x: 59.5, z: 1.5,  w: 3.0, d: 3.0, top: 9.6,  color: '#5bd1a0', blink: { period: 2.6, duty: 0.6, phase: 0.7 } },
-  { x: 64,   z: -1,   w: 3.0, d: 3.0, top: 10.8, color: '#4f9df6', motion: { axis: 'x', amp: 2.4, speed: 1.1 } },
-  { x: 69,   z: 2,    w: 3.0, d: 3.0, top: 12.0, color: '#ff8a3d' },
-  { x: 73.5, z: -2,   w: 2.6, d: 2.6, top: 13.2, color: '#c77dff', blink: { period: 2.5, duty: 0.58, phase: 0.2 } },
-  { x: 78,   z: 1,    w: 2.6, d: 2.6, top: 14.4, color: '#ffd23f' },
-  { x: 82.5, z: 0,    w: 3.2, d: 3.2, top: 15.4, color: '#ff6b9d', motion: { axis: 'z', amp: 3.5, speed: 1.6 } },
-  { x: 88,   z: 0,    w: 5.0, d: 5.0, top: 16.4, color: '#f6b400', kind: 'goal' },
+  // Stockwerk 1 – Start (orange/gelb)
+  { x: 28,   z: 0,    w: 3.0, d: 3.0, top: 1.2,  color: '#ff8a3d' },
+  { x: 32,   z: 2,    w: 3.0, d: 3.0, top: 2.8,  color: '#ffd23f' },
+  { x: 36,   z: -2,   w: 3.0, d: 3.0, top: 4.4,  color: '#ff8a3d' },
+  { x: 40,   z: 1.6,  w: 3.0, d: 3.0, top: 6.0,  color: '#ffd23f' },
+  // Stockwerk 2 – verschwindende Blöcke (türkis)
+  { x: 44,   z: -1.6, w: 3.0, d: 3.0, top: 7.6,  color: '#5bd1a0', blink: { period: 2.6, duty: 0.6, phase: 0.0 } },
+  { x: 47.5, z: 1.6,  w: 2.4, d: 2.4, top: 9.0,  color: '#39b98a' },
+  { x: 51,   z: -1.6, w: 3.0, d: 3.0, top: 10.4, color: '#5bd1a0', blink: { period: 2.4, duty: 0.58, phase: 0.4 } },
+  { x: 54.5, z: 1.2,  w: 2.6, d: 2.6, top: 11.8, color: '#39b98a' },
+  // Stockwerk 3 – bewegliche Plattformen (blau)
+  { x: 58,   z: 0,    w: 3.0, d: 3.0, top: 13.2, color: '#4f9df6', motion: { axis: 'z', amp: 3.0, speed: 1.3 } },
+  { x: 61.5, z: 0,    w: 2.4, d: 2.4, top: 14.6, color: '#3b82e0' },
+  { x: 65,   z: 0,    w: 3.0, d: 3.0, top: 16.0, color: '#4f9df6', motion: { axis: 'z', amp: 3.2, speed: 1.6 } },
+  // Wandsprung-Schacht (lila): unten rein, zwischen den Wänden hochspringen
+  { x: 69.5, z: 0,    w: 3.2, d: 3.2, top: 17.4, color: '#a855f7' },
+  { x: 70,   z: 0,    w: 3.2, d: 3.2, top: 24.8, color: '#a855f7' },
+  // Stockwerk 5 – Mix (pink)
+  { x: 73.5, z: 1.6,  w: 2.8, d: 2.8, top: 26.2, color: '#ff6b9d', blink: { period: 2.5, duty: 0.58, phase: 0.2 } },
+  { x: 77,   z: -1.0, w: 3.0, d: 3.0, top: 27.6, color: '#ff8fb0', motion: { axis: 'z', amp: 2.0, speed: 1.5 } },
+  { x: 80.5, z: 1.2,  w: 2.6, d: 2.6, top: 29.0, color: '#ff6b9d', blink: { period: 2.6, duty: 0.6, phase: 0.7 } },
+  { x: 84,   z: 0,    w: 3.0, d: 3.0, top: 30.4, color: '#ff8fb0' },
+  // Ziel (gold)
+  { x: 88,   z: 0,    w: 5.0, d: 5.0, top: 31.8, color: '#f6b400', kind: 'goal' },
 ];
 
-// Feste Deko (Bäume mit Kollision). Büsche/Blumen blockieren nicht.
+// Wände für Wandsprünge: zwei parallele Wände bilden den Schacht.
+export const WALLS = [
+  { x: 70, z: -2.1, w: 4.2, d: 0.6, y0: 17.7, y1: 26, color: '#8b3fd4' },
+  { x: 70, z: 2.1,  w: 4.2, d: 0.6, y0: 17.7, y1: 26, color: '#8b3fd4' },
+];
+
 export const TREES = [
   { x: -15, z: 9 }, { x: 13, z: 15 }, { x: 17, z: -7 },
   { x: -11, z: -13 }, { x: 6, z: 20 }, { x: -19, z: -3 }, { x: 20, z: 6 },
@@ -68,12 +81,18 @@ export const FLOWERS = (() => {
   return arr;
 })();
 
-const SPEED = 9;       // Studs pro Sekunde
-const TURN = 2.6;      // Bogenmaß pro Sekunde
-const GRAVITY = 55;    // Studs pro Sekunde²
-const JUMP_V = 22;     // Absprung-Geschwindigkeit
-const RESPAWN_Y = -26; // fällt man tiefer, wird man ge-respawnt
-const LAND_EPS = 0.25; // Toleranz beim Aufsetzen
+const SPEED = 9;
+const TURN = 2.6;
+const GRAVITY = 55;
+const JUMP_V = 22;
+const WALLJUMP_V = 20;   // Auftrieb beim Wandsprung
+const WALL_PUSH = 9;     // Abstoß von der Wand (seitlich)
+const WALL_SLIDE = -7;   // Mindest-Fallgeschwindigkeit an einer Wand (Gleiten)
+const WALL_CD = 0.22;    // kurze Sperre zwischen zwei Wandsprüngen
+const WALL_PR = 0.45;    // "Radius" des Avatars für die Wand-Kollision
+const PLAYER_H = 4.5;    // Körperhöhe (für die vertikale Wand-Überlappung)
+const RESPAWN_Y = -26;
+const LAND_EPS = 0.25;
 
 export class World {
   constructor() {
@@ -88,6 +107,11 @@ export class World {
     this.moving = false;
     this.groundRef = null;
     this.reachedGoal = false;
+    this.camPitch = 0.44;
+    this.vx = 0;
+    this.vz = 0;
+    this._wallTouch = null;
+    this._wallCd = 0;
     this._spawnAt(0);
   }
 
@@ -97,12 +121,14 @@ export class World {
     this.z = p.z;
     this.y = 0;
     this.vy = 0;
+    this.vx = 0;
+    this.vz = 0;
     this.grounded = true;
     this.groundRef = null;
-    this.yaw = Math.atan2(-p.x, -p.z); // Blick zum Brunnen
+    this.yaw = Math.atan2(-p.x, -p.z);
+    this.camPitch = 0.44;
   }
 
-  // Nach dem Obby-Abschluss zurück auf die Map.
   returnToStart() {
     this.respawnIndex = 0;
     this._spawnAt(0);
@@ -125,20 +151,17 @@ export class World {
     return Math.abs(x) <= FIELD && Math.abs(z) <= FIELD;
   }
 
-  // Ist eine (verschwindende) Plattform gerade fest?
   _blinkState(p, time) {
     if (!p.blink) return { solid: true, alpha: 1 };
     const u = mod(time / p.blink.period + p.blink.phase, 1);
     if (u < p.blink.duty) {
       const left = p.blink.duty - u;
-      // Kurz vor dem Verschwinden warnend flackern.
       const alpha = left < 0.18 ? 0.4 + 0.6 * Math.abs(Math.sin(time * 22)) : 1;
       return { solid: true, alpha };
     }
-    return { solid: false, alpha: 0.16 }; // Geist – kommt gleich wieder
+    return { solid: false, alpha: 0.16 };
   }
 
-  // Aktueller Zustand einer Obby-Plattform (Bewegung + Verschwinden).
   obbyPose(p, time = this.time) {
     let x = p.x;
     let z = p.z;
@@ -155,7 +178,6 @@ export class World {
     return OBBY.map((p) => this.obbyPose(p));
   }
 
-  // Alle festen Oberflächen: Haupt-Plattform + feste Obby-Plattformen.
   _solids() {
     const arr = [{ x: 0, z: 0, w: 2 * FIELD, d: 2 * FIELD, top: 0, kind: 'lawn', ref: null }];
     for (const p of OBBY) {
@@ -186,16 +208,23 @@ export class World {
       y: this.y + CAM_H,
       z: this.z - f.z * CAM_DIST,
       yaw: this.yaw,
-      pitch: 0.44,
+      pitch: this.camPitch,
     };
   }
 
   applyTurn(delta) {
     if (delta) this.yaw += delta;
   }
+  // Nach oben/unten schauen (für den Turm). pitch klein = nach oben.
+  applyPitch(delta) {
+    if (delta) this.camPitch = clamp(this.camPitch + delta, -0.25, 1.0);
+  }
 
   update(dt, controls = {}) {
-    // Bewegliche Plattform "trägt" den Avatar, solange er darauf steht.
+    this._wallTouch = null;
+    this._wallCd = Math.max(0, this._wallCd - dt);
+
+    // Bewegliche Plattform trägt den Avatar mit.
     if (this.grounded && this.groundRef && this.groundRef.motion) {
       const before = this.obbyPose(this.groundRef, this.time);
       this.time += dt;
@@ -211,28 +240,44 @@ export class World {
     const turn = clamp(controls.turn || 0, -1, 1);
     this.yaw += turn * TURN * dt;
 
+    // Horizontale Bewegung = Eingabe + Impuls (Wandsprung-Abstoß).
     const f = this.forward();
     const r = this.right();
-    let dx = f.x * move + r.x * strafe;
-    let dz = f.z * move + r.z * strafe;
-    const len = Math.hypot(dx, dz);
+    let ix = f.x * move + r.x * strafe;
+    let iz = f.z * move + r.z * strafe;
+    const len = Math.hypot(ix, iz);
     if (len > 1) {
-      dx /= len;
-      dz /= len;
+      ix /= len;
+      iz /= len;
     }
-    const step = SPEED * dt;
+    const mvx = ix * SPEED + this.vx;
+    const mvz = iz * SPEED + this.vz;
     const bx = this.x, bz = this.z;
-    const p = this._resolveXZ(this.x + dx * step, this.z + dz * step);
+    const p = this._resolveXZ(this.x + mvx * dt, this.z + mvz * dt);
     this.x = p.x;
     this.z = p.z;
+    const fr = Math.exp(-dt * 4);
+    this.vx *= fr;
+    this.vz *= fr;
+    if (Math.abs(this.vx) < 0.01) this.vx = 0;
+    if (Math.abs(this.vz) < 0.01) this.vz = 0;
 
+    // Normaler Sprung vom Boden ODER Wandsprung in der Luft.
     if (controls.jump && this.grounded) {
       this.vy = JUMP_V;
       this.grounded = false;
       this.groundRef = null;
+    } else if (controls.jump && !this.grounded && this._wallTouch && this._wallCd <= 0) {
+      this.vy = WALLJUMP_V;
+      this.vx += this._wallTouch.x * WALL_PUSH;
+      this.vz += this._wallTouch.z * WALL_PUSH;
+      this._wallCd = WALL_CD;
     }
+
     const prevY = this.y;
     this.vy -= GRAVITY * dt;
+    // An einer Wand langsamer fallen (Wandgleiten) -> Zeit zum Wandsprung.
+    if (!this.grounded && this._wallTouch && this.vy < WALL_SLIDE) this.vy = WALL_SLIDE;
     this.y += this.vy * dt;
 
     const land = this.vy <= 0 ? this._landing(prevY, this.y, this.x, this.z) : null;
@@ -262,6 +307,22 @@ export class World {
         ({ x, z } = pushOut(x, z, t.x, t.z, 1.2));
       }
     }
+    // Wände (AABB): blockieren und merken den Wandkontakt für den Wandsprung.
+    for (const wl of WALLS) {
+      if (!(this.y + PLAYER_H > wl.y0 && this.y < wl.y1)) continue;
+      const minx = wl.x - wl.w / 2 - WALL_PR;
+      const maxx = wl.x + wl.w / 2 + WALL_PR;
+      const minz = wl.z - wl.d / 2 - WALL_PR;
+      const maxz = wl.z + wl.d / 2 + WALL_PR;
+      if (x >= minx && x <= maxx && z >= minz && z <= maxz) {
+        const dl = x - minx, dr = maxx - x, db = z - minz, df = maxz - z;
+        const m = Math.min(dl, dr, db, df);
+        if (m === dl) { x = minx; this._wallTouch = { x: -1, z: 0 }; }
+        else if (m === dr) { x = maxx; this._wallTouch = { x: 1, z: 0 }; }
+        else if (m === db) { z = minz; this._wallTouch = { x: 0, z: -1 }; }
+        else { z = maxz; this._wallTouch = { x: 0, z: 1 }; }
+      }
+    }
     return { x, z };
   }
 
@@ -274,6 +335,7 @@ export class World {
       vy: this.vy,
       grounded: this.grounded,
       onPlatform: this.onPlatform(),
+      touchingWall: !!this._wallTouch,
       moving: this.moving,
       respawnCount: this.respawnCount,
       reachedGoal: this.reachedGoal,

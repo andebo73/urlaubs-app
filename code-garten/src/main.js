@@ -25,7 +25,7 @@ class Game {
     // Steuerungs-Zustand.
     this.keys = new Set();
     this.joy = { active: false, x: 0, y: 0, id: null };
-    this.look = { id: null, lastX: 0 };
+    this.look = { id: null, lastX: 0, lastY: 0 };
     this._jump = false;        // Sprung angefordert (wird pro Frame verbraucht)
     this._lastRespawn = 0;     // zuletzt gesehener Respawn-Zähler
     this._rewardCode = null;   // zuletzt in der Obby freigeschalteter Code
@@ -85,13 +85,17 @@ class Game {
       if (this.look.id !== null) return;
       this.look.id = e.pointerId;
       this.look.lastX = e.clientX;
+      this.look.lastY = e.clientY;
       this.canvas.setPointerCapture(e.pointerId);
     });
     this.canvas.addEventListener('pointermove', (e) => {
       if (e.pointerId !== this.look.id) return;
       const dx = e.clientX - this.look.lastX;
+      const dy = e.clientY - this.look.lastY;
       this.look.lastX = e.clientX;
+      this.look.lastY = e.clientY;
       this.world.applyTurn(dx * LOOK_SENS);
+      this.world.applyPitch(dy * LOOK_SENS); // hoch/runter schauen (Turm)
       this._hideHint();
     });
     const endLook = (e) => {
@@ -472,6 +476,11 @@ window.CodeGartenTest = {
   },
   getPlayer() {
     return game.world.snapshot();
+  },
+  // Position der Ziel-Plattform (für Tests).
+  goalPos() {
+    const g = game.world.obbyPoses().find((s) => s.kind === 'goal');
+    return g ? { x: g.x, z: g.z, top: g.top } : null;
   },
   // Bewegung deterministisch simulieren (für Tests).
   tick(controls = {}, dt = 0.1, steps = 1) {
